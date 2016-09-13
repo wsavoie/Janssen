@@ -11,38 +11,41 @@ region			box block -${w2} ${w2} -${w2} ${w2} -${h2} ${h2} units box
 create_box	3 box
 
 
-variable d1 equal 1.0
-variable d2 equal 1.0
-variable d3 equal 1.0
+variable d1         equal 1.0   #cylinder material
+variable d2         equal 1.0   #measure material
+variable d3         equal 1.0   #poured material
+variable fcSp       equal 10
+variable cylInRad   equal 3.5
+variable in_cylr     equal "v_cylInRad+v_d3/2.0"
+variable out_cylr    equal "v_in_cylr+v_d3"
 
+variable t0     equal "sqrt(v_d/v_g)"
+variable v0     equal "sqrt(v_d/v_g)"
 #########bottom plate##############
-lattice fcc 3 origin 0 0 0
+lattice fcc ${fcSp} origin 0 0 0
 region measure block -5 5 -5 5 -16.2 -15.5 units box
 create_atoms	1 region measure
 set type 1 diameter ${d1}
 group measure region measure
-
 #########cylinder##############
-lattice fcc 4 origin 0 0 0
-region in_cyl cylinder z    0 0 4 -15 10 units box side out
-region out_cyl cylinder z    0 0 5 -15 10 units box side in
+
+lattice fcc ${fcSp} origin 0 0 0
+region in_cyl cylinder z    0 0 ${in_cylr}        -15 10 units box side out        #rad=4
+region out_cyl cylinder z   0 0 ${out_cylr}    -15 10 units box side in         #rad=5
 region cyl intersect 2 in_cyl out_cyl
 create_atoms	2 region cyl
 set type 2 diameter ${d2}
 group cyl region cyl
 
+#visualize half of cylinder
+region visCyl cylinder z -${in_cylr}  0 ${in_cylr}  -15 10 units box
+group visCyl region visCyl
+
 
 #########poured material##############
 lattice fcc ${d3} origin 0 0 0
+print "!!!!!!!!!!!!!!!!!!"
 region pouredParts cylinder z 0 0 3 7 12 units box side in
-region p1 cylinder z 0 0 3 7 12 units box side in
-region p2 cylinder z 0 0 3 7 12 units box side in
-region p3 cylinder z 0 0 3 7 12 units box side in
-group p1 region p1
-group p2 region p2
-group p3 region p3
-
-
 set type 3 diameter ${d3}
 group pouredParts type 3
 
@@ -54,33 +57,52 @@ fix     1 freezeGroup freeze
 #####add gravity to poured particles#######
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 
-
-
-
-
 #set sim params
+##from pdf, maybe should change stiffness to 2e5?
+# http://lammps.sandia.gov/doc/units.html units in lammps
+#lj units
+variable k0     equal 0.1633 #if change sim params must change this!
+variable mup    equal 0.5
+variable muw    equal 0.5
+variable kn     equal "2*10^6*v_k0"
+
+variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
+variable g_n    equal "50"
+variable g_t    equal "50"
+
+
 timestep .001
+
+run_style verlet
+
 fix		3 all nve/sphere  #integrator type
-pair_style      gran/hooke/history 200000.0 NULL 50.0 NULL 0.5 0
+
+#http://lammps.sandia.gov/doc/fix_wall_gran.html
+#history means shear history effects are being used
+pair_style      gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
+
 pair_coeff	* *
 compute		1 all erotate/sphere
 compute     FRCE measure group/group pouredParts
+
 thermo_style	custom step atoms ke c_1 vol 
 thermo		100
 thermo_modify	lost ignore norm no
 compute_modify	thermo_temp dynamic yes
-#######add more particles
-# create_atoms 3 region p1
-fix		ins pouredParts pour 1000 3 300719 vol 0.13 50 region p1
-# fix 4 p1 deposit 1000 3 100 29494 region pouredParts gaussian 3.0 3.0 8 2.0 units box
+
+#######pour in particles
+fix		ins pouredParts pour 1000 3 300719 vol 0.13 50 region pouredParts
 # velocity pouredParts create .25 4928459 rot yes dist gaussian
-group pp type 3
-# group visGroup 
-dump		1 all atom 100 dump.lammpstrj
-# dump        2 all local 100 dumpMeasure.lammpstrj index FRCE
-dump		3 pouredParts movie 1000 movie.mpg type type &
-            axes yes 0.8 0.02 view 80 -30
-dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+
+
+group temp intersect cyl visCyl
+group temp2 union temp measure
+
+dump		1 pouredParts movie 1000 FillContainer.mpg type type &
+            axes yes 0.8 0.02 view 80 -30  #80 -30
+dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+
+
 
 variable fx equal c_FRCE[1]
 variable fy equal c_FRCE[2]
@@ -91,15 +113,14 @@ fix forcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file forces.txt scree
 run		100000
 
 #turn on langevins equations
-undump 3
 undump 1
 
 fix lang pouredParts langevin 5 10 100.0 48279
-group visGroup union pouredParts measure
-
-dump		1 all atom 100 dump2.lammpstrj
-
-dump		4 visGroup movie 1000 movie2.mpg type type &
+# group visGroup union pouredParts measure
+group visGroup union pouredParts temp2
+dump		2 all atom 100 Langevin.lammpstrj
+dump		3 visGroup movie 1000 Langevin.mpg type type &
             axes yes 0.8 0.02 view 80 -30
-dump_modify 4 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+dump		4 all xyz   100 Langevin.xyz 
 run		50000
