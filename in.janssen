@@ -1,83 +1,105 @@
-# Pour granular particles into chute container, then induce flow
-
 atom_style	sphere
 boundary	p p f
 newton		off
 comm_modify	vel yes
-# region		reg block "-${width}/2" "${width}/2" -10 10 -5 5 units box
-variable        w2 equal 10
-variable        h2 equal 20
-region		reg block -${w2} ${w2} -${w2} ${w2} -${h2} ${h2} units box
-create_box	1 reg
-
-
 neighbor	0.2 bin
 neigh_modify	delay 0
+variable        w2 equal 10
+variable        h2 equal 20
+
+region			box block -${w2} ${w2} -${w2} ${w2} -${h2} ${h2} units box
+create_box	3 box
 
 
+variable d1 equal 1.0
+variable d2 equal 1.0
+variable d3 equal 1.0
 
-lattice fcc 2 origin 0 0 0
-# region		measure plane 0 1 0 0 0 1 units lattice
-# region measure cylinder z 0 0 4 0 0.5 units box
-# region measure block EDGE EDGE EDGE EDGE -4.7 -3.7 units box
-
+#########bottom plate##############
+lattice fcc 3 origin 0 0 0
 region measure block -5 5 -5 5 -16.2 -15.5 units box
+create_atoms	1 region measure
+set type 1 diameter ${d1}
+group measure region measure
 
-# create cylinder out of particles
-# region cyl cylinder z       0 0 4 2 4 units box side in
+#########cylinder##############
+lattice fcc 4 origin 0 0 0
 region in_cyl cylinder z    0 0 4 -15 10 units box side out
 region out_cyl cylinder z    0 0 5 -15 10 units box side in
 region cyl intersect 2 in_cyl out_cyl
-# region pourCyl cylinder z    0 0 4 -18 18 units box
-region cylAndBott union 2 cyl measure
+create_atoms	2 region cyl
+set type 2 diameter ${d2}
+group cyl region cyl
 
-create_atoms 1 region cylAndBott 
-# create_atoms 2 region cyl
-# delete_atoms 3 region in_cyl
-region mreg union 2 measure cyl
-group freezeGroup region mreg
-group pourGroup subtract freezeGroup all
-group measureGroup region measure
-group gc region cyl
-# IMPORTANT NOTE: these values of stiffness (2000) and timestep (0.001)
-# are used in this example file to produce a quick simulation and movie.
-# More appropriate values for realistic simulations would be
-# k = 2.0e5 and dt = 0.0001, as in bench/in.chute.
 
+#########poured material##############
+lattice fcc ${d3} origin 0 0 0
+region pouredParts cylinder z 0 0 3 7 12 units box side in
+region p1 cylinder z 0 0 3 7 12 units box side in
+region p2 cylinder z 0 0 3 7 12 units box side in
+region p3 cylinder z 0 0 3 7 12 units box side in
+group p1 region p1
+group p2 region p2
+group p3 region p3
+
+
+set type 3 diameter ${d3}
+group pouredParts type 3
+
+######freeze non-moving##############
+group freezeGroup union cyl measure
+fix     1 freezeGroup freeze
+
+
+#####add gravity to poured particles#######
+fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
+
+
+
+
+
+#set sim params
+timestep .001
+fix		3 all nve/sphere  #integrator type
 pair_style      gran/hooke/history 200000.0 NULL 50.0 NULL 0.5 0
 pair_coeff	* *
-
-timestep	.001
-
-
-#group pourGroup subtract all measureGroup
-#group measureGroup 
-#region bottReg plane 
-fix		1 all nve/sphere
-
-fix		3 pourGroup gravity 1.0 spherical 0.0 -180.0
-fix		zlower all wall/gran hooke/history 200000.0 NULL 50.0 NULL 0.5 0 &
-		zplane -${h2} 2000.0  
-fix     4 freezeGroup freeze
-
-# region		slab block -9.0 9.0 -9.0 9.0 17 19 units box
-fix		ins pourGroup pour 1000 1 300719 vol .25 100 region out_cyl
-# fix		ins pourGroup pour 1000 1 300719 region out_cyl
-
-
 compute		1 all erotate/sphere
-thermo_style	custom step atoms ke c_1 vol
-thermo		1000
+compute     FRCE measure group/group pouredParts
+thermo_style	custom step atoms ke c_1 vol 
+thermo		100
 thermo_modify	lost ignore norm no
 compute_modify	thermo_temp dynamic yes
-group visGroup subtract all gc
+#######add more particles
+# create_atoms 3 region p1
+fix		ins pouredParts pour 1000 3 300719 vol 0.13 50 region p1
+# fix 4 p1 deposit 1000 3 100 29494 region pouredParts gaussian 3.0 3.0 8 2.0 units box
+# velocity pouredParts create .25 4928459 rot yes dist gaussian
+group pp type 3
+# group visGroup 
+dump		1 all atom 100 dump.lammpstrj
+# dump        2 all local 100 dumpMeasure.lammpstrj index FRCE
+dump		3 pouredParts movie 1000 movie.mpg type type &
+            axes yes 0.8 0.02 view 80 -30
+dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 
-dump		1 all atom 100 dump.pour
-dump		3 pourGroup movie 1000 movie.mpg type type &
-		axes yes 0.8 0.02 view 80 -30
+variable fx equal c_FRCE[1]
+variable fy equal c_FRCE[2]
+variable fz equal c_FRCE[3]
+# variable fe equal c_FRCE[0]
+variable ss equal step
+fix forcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file forces.txt screen no
+run		100000
 
-run		1000000
+#turn on langevins equations
+undump 3
+undump 1
 
-#unfix		ins
-#fix		2 all gravity 1.0 chute 26.0
-#run		25000
+fix lang pouredParts langevin 5 10 100.0 48279
+group visGroup union pouredParts measure
+
+dump		1 all atom 100 dump2.lammpstrj
+
+dump		4 visGroup movie 1000 movie2.mpg type type &
+            axes yes 0.8 0.02 view 80 -30
+dump_modify 4 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+run		50000
