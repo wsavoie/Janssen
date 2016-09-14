@@ -1,3 +1,4 @@
+# print "${abc}!@#!@#!@#"
 atom_style	sphere
 boundary	f f f
 newton		off
@@ -10,17 +11,17 @@ variable        h2 equal 20
 region			box block -${w2} ${w2} -${w2} ${w2} -${h2} ${h2} units box
 create_box	3 box
 
-variable partsNum       equal 1000
-variable partsNumSTR    string ${partsNum}
+
+
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1.0   #poured material
-variable fcSp           equal 3
-variable cylInRad       equal 3.5
+variable fcSp           equal 10
+# variable cylInRad       equal 3.5
 variable in_cylr        equal "v_cylInRad+v_d3/2.0"
 variable out_cylr       equal "v_in_cylr+v_d3"
 
-shell mkdir ${partsNumSTR}
+
 variable t0     equal "sqrt(v_d/v_g)"
 variable v0     equal "sqrt(v_d/v_g)"
 #########bottom plate##############
@@ -29,8 +30,8 @@ region measure block -5 5 -5 5 -16.2 -15.5 units box
 create_atoms	1 region measure
 set type 1 diameter ${d1}
 group measure region measure
-#########cylinder##############
 
+#########cylinder##############
 lattice fcc ${fcSp} origin 0 0 0
 region in_cyl cylinder z    0 0 ${in_cylr}        -15 10 units box side out        #rad=4
 region out_cyl cylinder z   0 0 ${out_cylr}    -15 10 units box side in         #rad=5
@@ -46,7 +47,7 @@ group visCyl region visCyl
 
 #########poured material##############
 lattice fcc ${d3} origin 0 0 0
-print "!!!!!!!!!!!!!!!!!!"
+
 region pouredParts cylinder z 0 0 3 7 12 units box side in
 set type 3 diameter ${d3}
 group pouredParts type 3
@@ -56,6 +57,22 @@ group freezeGroup union cyl measure
 fix     1 freezeGroup freeze
 
 
+variable k0     equal 0.1633 #if change sim params must change this!
+variable mup    equal 0.08
+variable muw    equal 0.5
+variable kn     equal "2*10^6*v_k0"
+
+variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
+variable g_n    equal "50"
+variable g_t    equal "50"
+variable pourSteps equal 100000
+variable langSteps equal 20000
+
+
+variable partsNum equal "400+v_a*100"
+variable partsNumSTR    string ${partsNum}
+shell mkdir r=${cylInRad}
+shell mkdir r=${cylInRad}/${partsNumSTR}
 #####add gravity to poured particles#######
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 
@@ -63,14 +80,6 @@ fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 ##from pdf, maybe should change stiffness to 2e5?
 # http://lammps.sandia.gov/doc/units.html units in lammps
 #lj units
-variable k0     equal 0.1633 #if change sim params must change this!
-variable mup    equal 0.5
-variable muw    equal 0.5
-variable kn     equal "2*10^6*v_k0"
-
-variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
-variable g_n    equal "50"
-variable g_t    equal "50"
 
 
 timestep .001
@@ -100,7 +109,7 @@ fix		ins pouredParts pour ${partsNum} 3 300719 vol 0.13 50 region pouredParts
 group temp intersect cyl visCyl
 group temp2 union temp measure
 
-dump		1 pouredParts movie 1000  ${partsNumSTR}/FillContainer.mpg type type &
+dump		1 pouredParts movie 1000  r=${cylInRad}/${partsNumSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 
@@ -113,13 +122,11 @@ variable fz equal c_2[3]
 # variable fe equal c_FRCE[0]
 
 
-variable pourSteps equal 100000
-variable langSteps equal 5000
-fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file ${partsNumSTR}/forces.txt screen no 
+
+fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file r=${cylInRad}/${partsNumSTR}/forces.txt screen no 
 # fix measurePrint print measure "${ss} ${fx} ${fy} ${fz}" file ${partsNumSTR}/forces.txt screen no 
 run		${pourSteps}
-
-write_dump all custom ${partsNumSTR}/lastFramePour.txt id type x y z fx fy fz 
+write_dump all custom r=${cylInRad}/${partsNumSTR}/lastFramePour.txt id type x y z fx fy fz 
 # 
 #turn on langevins equations
 undump 1
@@ -127,13 +134,13 @@ undump 1
 fix lang pouredParts langevin 5 10 100.0 48279
 # group visGroup union pouredParts measure
 group visGroup union pouredParts temp2
-dump		2 all atom 100  ${partsNumSTR}/Langevin.lammpstrj
-dump		3 visGroup movie 1000  ${partsNumSTR}/Langevin.mpg type type &
+dump		2 all atom 100  r=${cylInRad}/${partsNumSTR}/Langevin.lammpstrj
+dump		3 visGroup movie 1000  r=${cylInRad}/${partsNumSTR}/Langevin.mpg type type &
             axes yes 0.8 0.02 view 80 -30
 dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
-dump		4 all xyz   100  ${partsNumSTR}/Langevin.xyz
-fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" append ${partsNumSTR}/forces.txt screen no 
+dump		4 all xyz   100  r=${cylInRad}/${partsNumSTR}/Langevin.xyz
+fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file r=${cylInRad}/${partsNumSTR}/forcesLang.txt screen no 
 run		${langSteps}
-write_dump all atom ${partsNumSTR}/lastFrameLangevin.txt
+write_dump all atom r=${cylInRad}/${partsNumSTR}/lastFrameLangevin.txt
 
 ##write_data derp
