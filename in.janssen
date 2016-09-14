@@ -1,5 +1,5 @@
 atom_style	sphere
-boundary	p p f
+boundary	f f f
 newton		off
 comm_modify	vel yes
 neighbor	0.2 bin
@@ -10,15 +10,17 @@ variable        h2 equal 20
 region			box block -${w2} ${w2} -${w2} ${w2} -${h2} ${h2} units box
 create_box	3 box
 
+variable partsNum       equal 1000
+variable partsNumSTR    string ${partsNum}
+variable d1             equal 1.0   #cylinder material
+variable d2             equal 1.0   #measure material
+variable d3             equal 1.0   #poured material
+variable fcSp           equal 3
+variable cylInRad       equal 3.5
+variable in_cylr        equal "v_cylInRad+v_d3/2.0"
+variable out_cylr       equal "v_in_cylr+v_d3"
 
-variable d1         equal 1.0   #cylinder material
-variable d2         equal 1.0   #measure material
-variable d3         equal 1.0   #poured material
-variable fcSp       equal 10
-variable cylInRad   equal 3.5
-variable in_cylr     equal "v_cylInRad+v_d3/2.0"
-variable out_cylr    equal "v_in_cylr+v_d3"
-
+shell mkdir ${partsNumSTR}
 variable t0     equal "sqrt(v_d/v_g)"
 variable v0     equal "sqrt(v_d/v_g)"
 #########bottom plate##############
@@ -83,7 +85,7 @@ pair_style      gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
 
 pair_coeff	* *
 compute		1 all erotate/sphere
-compute     FRCE measure group/group pouredParts
+compute     2 pouredParts group/group measure
 
 thermo_style	custom step atoms ke c_1 vol 
 thermo		100
@@ -91,36 +93,47 @@ thermo_modify	lost ignore norm no
 compute_modify	thermo_temp dynamic yes
 
 #######pour in particles
-fix		ins pouredParts pour 1000 3 300719 vol 0.13 50 region pouredParts
+fix		ins pouredParts pour ${partsNum} 3 300719 vol 0.13 50 region pouredParts
 # velocity pouredParts create .25 4928459 rot yes dist gaussian
 
 
 group temp intersect cyl visCyl
 group temp2 union temp measure
 
-dump		1 pouredParts movie 1000 FillContainer.mpg type type &
+dump		1 pouredParts movie 1000  ${partsNumSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 
 
 
-variable fx equal c_FRCE[1]
-variable fy equal c_FRCE[2]
-variable fz equal c_FRCE[3]
-# variable fe equal c_FRCE[0]
 variable ss equal step
-fix forcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file forces.txt screen no
-run		100000
+variable fx equal c_2[1]
+variable fy equal c_2[2]
+variable fz equal c_2[3]
+# variable fe equal c_FRCE[0]
 
+
+variable pourSteps equal 100000
+variable langSteps equal 5000
+fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file ${partsNumSTR}/forces.txt screen no 
+# fix measurePrint print measure "${ss} ${fx} ${fy} ${fz}" file ${partsNumSTR}/forces.txt screen no 
+run		${pourSteps}
+
+write_dump all custom ${partsNumSTR}/lastFramePour.txt id type x y z fx fy fz 
+# 
 #turn on langevins equations
 undump 1
 
 fix lang pouredParts langevin 5 10 100.0 48279
 # group visGroup union pouredParts measure
 group visGroup union pouredParts temp2
-dump		2 all atom 100 Langevin.lammpstrj
-dump		3 visGroup movie 1000 Langevin.mpg type type &
+dump		2 all atom 100  ${partsNumSTR}/Langevin.lammpstrj
+dump		3 visGroup movie 1000  ${partsNumSTR}/Langevin.mpg type type &
             axes yes 0.8 0.02 view 80 -30
 dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
-dump		4 all xyz   100 Langevin.xyz 
-run		50000
+dump		4 all xyz   100  ${partsNumSTR}/Langevin.xyz
+fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" append ${partsNumSTR}/forces.txt screen no 
+run		${langSteps}
+write_dump all atom ${partsNumSTR}/lastFrameLangevin.txt
+
+##write_data derp
