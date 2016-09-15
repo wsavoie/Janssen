@@ -1,4 +1,8 @@
-# print "${abc}!@#!@#!@#"
+#input params are npm and R
+#tSteps     = number of timesteps for filling
+#R          = radius of cylinder
+#nParts     = number of particles
+# lmp_serial -var tSteps 99000 -var R 3 -var nParts 900 < in.janssen
 atom_style	sphere
 boundary	f f f
 newton		off
@@ -17,8 +21,8 @@ variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1.0   #poured material
 variable fcSp           equal 10
-# variable cylInRad       equal 3.5
-variable in_cylr        equal "v_cylInRad+v_d3/2.0"
+# variable R       equal 3.5
+variable in_cylr        equal "v_R+v_d3/2.0"
 variable out_cylr       equal "v_in_cylr+v_d3"
 
 
@@ -26,7 +30,7 @@ variable t0     equal "sqrt(v_d/v_g)"
 variable v0     equal "sqrt(v_d/v_g)"
 #########bottom plate##############
 lattice fcc ${fcSp} origin 0 0 0
-region measure block -5 5 -5 5 -16.2 -15.5 units box
+region measure block -${R} ${R} -${R} ${R} -16.2 -15.5 units box
 create_atoms	1 region measure
 set type 1 diameter ${d1}
 group measure region measure
@@ -65,14 +69,16 @@ variable kn     equal "2*10^6*v_k0"
 variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
 variable g_n    equal "50"
 variable g_t    equal "50"
-variable pourSteps equal 100000
+
+#for filling time, pourSteps~partNums,  pourSteps = 11*partNums-110 
+variable pourSteps equal "v_tSteps"
 variable langSteps equal 20000
 
 
-variable partsNum equal "400+v_a*100"
-variable partsNumSTR    string ${partsNum}
-shell mkdir r=${cylInRad}
-shell mkdir r=${cylInRad}/${partsNumSTR}
+# variable nParts equal "v_nParts" 
+variable nPartsSTR    string ${nParts}
+shell mkdir r=${R}
+shell mkdir r=${R}/${nPartsSTR}
 #####add gravity to poured particles#######
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 
@@ -102,14 +108,14 @@ thermo_modify	lost ignore norm no
 compute_modify	thermo_temp dynamic yes
 
 #######pour in particles
-fix		ins pouredParts pour ${partsNum} 3 300719 vol 0.13 50 region pouredParts
+fix		ins pouredParts pour ${nParts} 3 300719 vol 0.13 50 region pouredParts
 # velocity pouredParts create .25 4928459 rot yes dist gaussian
 
 
 group temp intersect cyl visCyl
 group temp2 union temp measure
 
-dump		1 pouredParts movie 1000  r=${cylInRad}/${partsNumSTR}/FillContainer.mpg type type &
+dump		1 pouredParts movie 1000  r=${R}/${nPartsSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 
@@ -123,10 +129,10 @@ variable fz equal c_2[3]
 
 
 
-fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file r=${cylInRad}/${partsNumSTR}/forces.txt screen no 
-# fix measurePrint print measure "${ss} ${fx} ${fy} ${fz}" file ${partsNumSTR}/forces.txt screen no 
+fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forces.txt screen no 
+# fix measurePrint print measure "${ss} ${fx} ${fy} ${fz}" file ${nPartsSTR}/forces.txt screen no 
 run		${pourSteps}
-write_dump all custom r=${cylInRad}/${partsNumSTR}/lastFramePour.txt id type x y z fx fy fz 
+write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz 
 # 
 #turn on langevins equations
 undump 1
@@ -134,13 +140,13 @@ undump 1
 fix lang pouredParts langevin 5 10 100.0 48279
 # group visGroup union pouredParts measure
 group visGroup union pouredParts temp2
-dump		2 all atom 100  r=${cylInRad}/${partsNumSTR}/Langevin.lammpstrj
-dump		3 visGroup movie 1000  r=${cylInRad}/${partsNumSTR}/Langevin.mpg type type &
+dump		2 all atom 100  r=${R}/${nPartsSTR}/Langevin.lammpstrj
+dump		3 visGroup movie 1000  r=${R}/${nPartsSTR}/Langevin.mpg type type &
             axes yes 0.8 0.02 view 80 -30
 dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
-dump		4 all xyz   100  r=${cylInRad}/${partsNumSTR}/Langevin.xyz
-fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file r=${cylInRad}/${partsNumSTR}/forcesLang.txt screen no 
+dump		4 all xyz   100  r=${R}/${nPartsSTR}/Langevin.xyz
+fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forcesLang.txt screen no 
 run		${langSteps}
-write_dump all atom r=${cylInRad}/${partsNumSTR}/lastFrameLangevin.txt
+write_dump all atom r=${R}/${nPartsSTR}/lastFrameLangevin.txt
 
 ##write_data derp
