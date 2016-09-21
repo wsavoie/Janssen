@@ -20,7 +20,7 @@ create_box	3 box
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1.0   #poured material
-variable fcSp           equal 10
+variable fcSp           equal 7
 # variable R       equal 3.5
 variable in_cylr        equal "v_R+v_d3/2.0"
 variable out_cylr       equal "v_in_cylr+v_d3"
@@ -62,7 +62,7 @@ fix     1 freezeGroup freeze
 
 
 variable k0     equal 0.1633 #if change sim params must change this!
-variable mup    equal 0.08
+variable mup    equal 0.5
 variable muw    equal 0.5
 variable kn     equal "2*10^6*v_k0"
 
@@ -101,6 +101,9 @@ pair_style      gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
 pair_coeff	* *
 compute		1 all erotate/sphere
 compute     2 pouredParts group/group measure
+compute     3 pouredParts group/group cyl
+compute     4 measure stress/atom NULL
+compute     p measure reduce sum c_4[3]
 
 thermo_style	custom step atoms ke c_1 vol 
 thermo		100
@@ -122,17 +125,23 @@ dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 
 
 variable ss equal step
-variable fx equal c_2[1]
-variable fy equal c_2[2]
-variable fz equal c_2[3]
+ # xx, yy, zz, xy, xz, yz.
+variable fx equal c_p
+variable fy equal c_p
+variable fz equal c_p
+
+variable sx equal c_3[1]
+variable sy equal c_3[2]
+variable sz equal c_3[3]
 # variable fe equal c_FRCE[0]
 
 
 
-fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forces.txt screen no 
+fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forces.txt screen no
+fix WallForcePrint cyl print ${pourSteps} "${ss} ${sx} ${sy} ${sz}" file r=${R}/${nPartsSTR}/cylForces.txt screen no  
 # fix measurePrint print measure "${ss} ${fx} ${fy} ${fz}" file ${nPartsSTR}/forces.txt screen no 
 run		${pourSteps}
-write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz 
+write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
 # 
 #turn on langevins equations
 undump 1
