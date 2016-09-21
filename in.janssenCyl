@@ -1,0 +1,171 @@
+#input params are npm and R
+#tSteps     = number of timesteps for filling
+#R          = radius of cylinder
+#nParts     = number of particles
+# lmp_serial -var tSteps 99000 -var R 5 -var nParts 800 < in.janssenCyl
+atom_style	sphere
+boundary	f f f
+newton		off
+
+comm_modify	vel yes
+neighbor	0.2 bin
+# neigh_modify	delay 0
+variable        w2 equal 10
+variable        h2 equal 60
+
+
+
+
+
+
+variable d1             equal 1.0   #cylinder material
+variable d2             equal 1.0   #measure material
+variable d3             equal 1.0   #poured material
+variable fcSp           equal 4
+# variable R       equal 3.5
+variable in_cylr        equal "v_R+v_d3/2.0"
+region in_cyl cylinder z    0 0 ${R} -${d2} ${h2} units box       #rad=4
+create_box	3 in_cyl
+
+
+variable t0     equal "sqrt(v_d/v_g)"
+variable v0     equal "sqrt(v_d/v_g)"
+#########bottom plate##############
+lattice fcc ${fcSp} origin 0 0 0
+variable b equal "(-v_d1/4.0)"
+variable rn equal "v_R-v_d1/4.0"
+# region measure block -${R} ${R} -${R} ${R} -0.25 0 units box
+region measure cylinder z    0 0 ${rn} -0.25 0 units box
+create_atoms	1 region measure
+
+set type 1 diameter ${d1}
+group measure region measure
+
+#########cylinder##############
+# lattice fcc ${fcSp} origin 0 0 0
+# # region in_cyl cylinder z    0 0 ${in_cylr}        -15 10 units box side out        #rad=4
+# create_atoms	2 region cyl
+# set type 2 diameter ${d2}
+# group cyl region cyl
+
+# #visualize half of cylinder
+# region visCyl cylinder z -${in_cylr}  0 ${in_cylr}  -15 10 units box
+# group visCyl region visCyl
+
+
+
+variable bottomFill equal "v_h2-5.0"
+#########poured material##############
+lattice fcc ${d3} origin 0 0 0
+variable rn equal "v_R-2*v_d1"
+region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
+set type 3 diameter ${d3}
+group pouredParts type 3
+
+######freeze non-moving##############
+# group freezeGroup measure
+# fix     1 measure freeze
+
+print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+variable k0     equal 0.1633 #if change sim params must change this!
+variable mup    equal 0.5
+variable muw    equal 0.5
+variable kn     equal "2*10^6*v_k0"
+
+variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
+variable g_n    equal "50"
+variable g_t    equal "50"
+
+#for filling time, pourSteps~partNums,  pourSteps = 11*partNums-110 
+variable pourSteps equal "v_tSteps"
+variable langSteps equal 20000
+
+
+# variable nParts equal "v_nParts" 
+variable nPartsSTR    string ${nParts}
+shell mkdir r=${R}
+shell mkdir r=${R}/${nPartsSTR}
+#####add gravity to poured particles#######
+fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
+
+#set sim params
+##from pdf, maybe should change stiffness to 2e5?
+# http://lammps.sandia.gov/doc/units.html units in lammps
+#lj units
+
+
+timestep .001
+
+run_style verlet
+fix     1 measure rigid single
+fix		6 pouredParts nve/sphere  #integrator type
+fix		4 all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
+# fix		3 measure nve/sphere  #integrator type\
+
+pair_style gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
+
+
+fix		bott all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane -1 NULL  #integrator type
+
+#http://lammps.sandia.gov/doc/fix_wall_gran.html
+#history means shear history effects are being used
+
+
+pair_coeff	* *
+compute		1 all erotate/sphere
+compute     2 pouredParts group/group measure
+# compute     4 measure stress/atom NULL
+# compute     p measure reduce sum c_4[3]
+
+
+thermo_style	custom step atoms ke c_1 vol 
+thermo		100
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+compute     4   all pressure thermo_temp
+# compute     5  all pressure NULL
+compute_modify     4  dynamic yes
+#######pour in particles
+fix		ins pouredParts pour ${nParts} 3 300719 vol 0.3 50 region pouredParts
+# velocity pouredParts create .25 4928459 rot yes dist gaussian
+
+dump		1 all movie 500  r=${R}/${nPartsSTR}/FillContainer.mpg type type &
+            axes yes 0.8 0.02 view 80 -30  #80 -30
+dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+
+
+
+variable ss equal step
+ # xx, yy, zz, xy, xz, yz.
+variable fx equal c_2[1]
+variable fy equal c_2[2]
+variable fz equal c_2[3]
+
+variable sx equal c_4[1]
+variable sy equal c_4[2]
+variable sz equal c_4[3]
+# variable fe equal c_FRCE[0]
+
+
+
+fix forcePrint measure print ${pourSteps} "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forces.txt screen no
+fix WallForcePrint all print ${pourSteps} "${ss} ${sx} ${sy} ${sz}" file r=${R}/${nPartsSTR}/cylForces.txt screen no  
+run		${pourSteps}
+write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
+# 
+#turn on langevins equations
+undump 1
+
+# fix lang pouredParts langevin 5 10 100.0 48279
+# # group visGroup union pouredParts measure
+# group visGroup union pouredParts temp2
+# dump		2 all atom 100  r=${R}/${nPartsSTR}/Langevin.lammpstrj
+# dump		3 visGroup movie 1000  r=${R}/${nPartsSTR}/Langevin.mpg type type &
+            # axes yes 0.8 0.02 view 80 -30
+# dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+# dump		4 all xyz   100  r=${R}/${nPartsSTR}/Langevin.xyz
+# fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forcesLang.txt screen no 
+# run		${langSteps}
+# write_dump all atom r=${R}/${nPartsSTR}/lastFrameLangevin.txt
+
+# ##write_data derp
