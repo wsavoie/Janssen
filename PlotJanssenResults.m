@@ -2,7 +2,7 @@ simMass = 1;
 simDiam = 1;
 simGrav = 1;
 
-
+clear pts;
 % simDt   = data.timestep;
 inCylR  = 3.5;
 
@@ -17,9 +17,9 @@ epsilon= g*m*sigma/(simMass*simGrav);
 tau = (sigma^2*m/epsilon)^(1/2);
 
 
-
-fold = ('A:\LAMMPS\Janssen\');
-% fold = uigetdir('A:\LAMMPS\Janssen');
+muw=0.5;
+% fold = ('A:\LAMMPS\Janssen\');
+fold = uigetdir('A:\LAMMPS\Janssen');
 radFolds =dir2(fold);
 radFolds= radFolds(strncmpi('r=', {radFolds.name}, 2));
 if isempty(radFolds)
@@ -35,11 +35,15 @@ for(i=1:length(radFolds))
     for j=1:length(partsFolds)
         data(c).rad= str2double(r{1}{1});
         data(c).n= str2double(partsFolds(j).name);
+        filename = fullfile(fold,radFolds(i).name,partsFolds(j).name);
+        pts(filename);
+
+
+%         [data(c).dat, data(c).fzS, data(c).lfzS data(c).outStressS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name));
+        [data(c).dat,data(c).fxS data(c).fyS data(c).fzS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name));
+
         
-        pts(fullfile(fold,radFolds(i).name,partsFolds(j).name));
-
-
-        [data(c).dat, data(c).fzS, data(c).lfzS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name));
+        %         data(c).fzS
         data(c).simDt= 0.001;%try and get this from file somehow?
 %         data(c).simDt= data(c).dat.timestep;
         data(c).dt  =  tau*data(c).simDt;
@@ -48,44 +52,89 @@ for(i=1:length(radFolds))
         data(c).m= 0.0001;
        
         
-    
+        %get all particles
         pouredPartsType=3;
+        partsSub=5;
         data(c).pouredParts = data(c).dat.atom_data(data(c).dat.atom_data(:,2)==pouredPartsType,:);
-        data(c).n = length(data(c).pouredParts);
-
-        data(c).Hs = mean(data(c).pouredParts(1:3,5)+boxPos); %height is mean of top 3 particle positions
+        data(c).pouredParts = sortrows(data(c).pouredParts,5);
+        data(c).n = length(data(c).pouredParts)-partsSub;
+        
+        %sort particles by height in ascending order
+        hs= sortrows(data(c).pouredParts,5);
+        data(c).Hs = mean(hs((end-partsSub-5):(end-partsSub),5)); %height is mean of top 3 particle positions
         data(c).H  = data(c).Hs*sigma;
         
-
+        %stress rr = sqrt(xx^2 +yy^2)        
+%         data(c).outStress=sqrt((data(c).outStressS(1))^2+(data(c).outStressS(2))^2)*epsilon/sigma;
+ 
+        %divide force by inner surface area of cylinder
+         %h already converted rad needs conversion
+%         data(c).outStress=data(c).outStress/(sigma*2*pi*data(c).rad*sigma); 
+        
+        %get fz on bottom plate for lfz and fz
         data(c).fz  = data(c).fzS*epsilon/sigma;
-        data(c).lfz = data(c).lfzS*epsilon/sigma;
+%         data(c).lfz = data(c).lfzS*epsilon/sigma;
 
         data(c).areaz = sigma^2*pi*data(c).rad.^2;
-        data(c).stress =data(c).fz/data(c).areaz;
-        
         data(c).trueWeight = data(c).m*data(c).n*g;
         
         %lamda = D/(4*mu*K) %sig_rr = K*sig_zz k= const. let k =1
-        data(c).lambda=2*data(c).rad*sigma/(4*.08*1);
         
+        
+       
         %is rho the density of the GM in the container or the density of
         %particle?
-        data(c).rho=m/(4*pi*1/2*sigma^3/3);
-        data(c).rhoSys=m*data(c).n/(data(c).areaz*data(c).H);
+%         data(c).rho=m/(4*pi*(1/2)^3*sigma^3/3);
+        data(c).rho=m*data(c).n/(data(c).areaz*data(c).H);
         
-        data(c).stress_rhoglam= data(c).stress(1)/(data(c).rho*g*data(c).lambda);
+        
+        data(c).stress =data(c).fz/data(c).areaz;
+%         data(c).stress2 =(1-exp(-data(c).H/data(c).lambda))*(data(c).rho*g*data(c).lambda);
+
+%         data(c).k= data(c).outStress/data(c).stress;
+%         data(c).k = .375;
+        
+        data(c).k = .1;
+%         cc=max(data(c).fzAS(2),data(c).fzAS(3));
+%         data(c).k=(2.25*cc^2)/data(c).fzAS(4);
+%          data(c).k=.73;
+
+
+        data(c).lambda=2*data(c).rad*sigma/(4*muw*data(c).k);
+        data(c).stress_rhoglam= data(c).stress/(data(c).rho*g*data(c).lambda);
+        %         data(c).k= sqrt((data(c).outStressS(1))^2+(data(c).outStressS(2))^2)/(data(c).fzS/(pi*data(c).rad^2));
+
         data(c).z_lam= data(c).H/data(c).lambda;
+        
+        data(c).stress=data(c).fzS/(pi*data(c).rad^2);
+        a2=(pi*2*data(c).rad*data(c).Hs);
+        data(c).k =sqrt((data(c).fxS/a2).^2+(data(c).fyS/a2).^2)/data(c).stress;
+        data(c).lambda=2*data(c).rad/(4*muw*data(c).k);
+%         data(c).lambda=2*data(c).rad;
+        data(c).z_lam =data(c).Hs/data(c).lambda;
+        data(c).rho=1*data(c).n/(pi*data(c).rad^2*data(c).Hs);
+        data(c).stress_rhoglam= data(c).stress/(data(c).rho*1*data(c).lambda);
+
         c=c+1;
     end
     
 
 end
+hold on;
 
 janDat = [[data(:).z_lam]',[data(:).stress_rhoglam]'];
-janDat=sortrows(janDat,2);
+janDat=sortrows(janDat,1);
 
-plot(janDat(:,1),janDat(:,2),'.','markersize',12);
+janDat2 = [[data(:).H]',[data(:).stress]'];
+janDat2=sortrows(janDat2,2);
 
+
+x=0:.1:10;plot(x,1-exp(-x),'-');
+
+plot(janDat(:,1),janDat(:,2),'.-','markersize',12);
+% plot(janDat2(:,1),janDat2(:,2),'b.','markersize',12);
+xlabel('z/\lambda');
+ylabel('\sigma_{zz}/\rhog\lambda');
 % plot(0:data(c):.*,data(c).lfz);
 % ylabel('Normal force on bottom plate (N)');
 % xlabel('time')
