@@ -16,18 +16,20 @@ variable        h2 equal 75
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1.0   #poured material
-variable fcSp           equal 4
-variable fcSp2           equal 5
-# variable R       equal 3.5
+variable fcSp           equal 10
+variable fcSp2          equal 10
+# variable R            equal 3.5
 variable in_cylr        equal "v_R+v_d1/2"
-variable out_cylr        equal "v_R"
-variable sysCylSize equal "v_R+4*v_d1"
-region sys cylinder z    0 0 ${sysCylSize} -2 ${h2} units box       #rad=4
+variable out_cylr       equal "v_R"
+variable sysCylSize     equal "v_R+4*v_d1"
+variable sysCylH        equal "v_h2+5"
+
+region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
 create_box	3 sys
 
 #########bottom plate##############
 lattice fcc ${fcSp} origin 0 0 0
-variable r1 equal "v_d1/2.0"
+variable r1 equal "v_d1*2/3"
 variable b equal "(-v_d1/4.0)"
 variable rn equal "v_R-v_d1/4.0"
 # region measure block -${R} ${R} -${R} ${R} -0.25 0 units box
@@ -98,13 +100,12 @@ fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 timestep .001
 
 run_style verlet
-fix     1 measure rigid single
-fix     7 cyl rigid single
+# fix     1 measure rigid single
+# fix     7 cyl rigid single
 fix		6 all nve/sphere  #integrator type
 fix		4 all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
 # fix		3 measure nve/sphere  #integrator type\
-group freezeGroup union measure cyl
-fix     freezeFix freezeGroup freeze
+
 # pair_style gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
 pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
 
@@ -147,7 +148,8 @@ compute     2 pouredParts group/group measure
 # compute     p measure reduce sum c_4[3]
 
 
-
+group freezeGroup union measure cyl
+fix     freezeFix freezeGroup freeze
 
 #######pour in particles
 fix		ins pouredParts pour ${nParts} 3 300719 vol 0.20 100 region pouredParts
@@ -168,7 +170,7 @@ compute mx pouredParts group/group mx
 compute py pouredParts group/group py
 compute my pouredParts group/group my
 group vg union mx measure
-
+group vg2 union pouredParts vg 
 dump		1 pouredParts movie 100 r=${R}/${nPartsSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
