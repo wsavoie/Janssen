@@ -2,7 +2,7 @@
 #tSteps     = number of timesteps for filling
 #R          = radius of cylinder
 #nParts     = number of particles
-# lmp_serial -var tSteps 99000 -var R 5 -var nParts 800 < in.janssenCyl
+# lmp_serial -var tSteps 45000 -var R 5 -var nParts 800 < in.janssenCyl
 atom_style	sphere
 boundary	f f f
 newton		off
@@ -25,15 +25,16 @@ variable sysCylSize     equal "v_R+4*v_d1"
 variable sysCylH        equal "v_h2+5"
 
 region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
-create_box	3 sys
+create_box	4 sys
 
 #########bottom plate##############
 lattice fcc ${fcSp} origin 0 0 0
 variable r1 equal "v_d1*2/3"
 variable b equal "(-v_d1/4.0)"
 variable rn equal "v_R-v_d1/4.0"
+variable rn1 equal "v_R+v_d1"
 # region measure block -${R} ${R} -${R} ${R} -0.25 0 units box
-region measure cylinder z    0 0 ${rn} -0.25 0 units box
+region measure cylinder z    0 0 ${rn1} -0.25 0 units box
 create_atoms	2 region measure
 
 set type 2 diameter ${d1}
@@ -103,7 +104,7 @@ run_style verlet
 # fix     1 measure rigid single
 # fix     7 cyl rigid single
 fix		6 all nve/sphere  #integrator type
-fix		4 all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
+# fix		4 all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
 # fix		3 measure nve/sphere  #integrator type\
 
 # pair_style gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
@@ -169,8 +170,7 @@ compute px pouredParts group/group px
 compute mx pouredParts group/group mx
 compute py pouredParts group/group py
 compute my pouredParts group/group my
-group vg union mx measure
-group vg2 union pouredParts vg 
+
 dump		1 pouredParts movie 100 r=${R}/${nPartsSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
@@ -202,7 +202,40 @@ write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy 
 # 
 #turn on langevins equations
 undump 1
+##############################new press stuff############################
+group vg union mx measure
+group vg2 union pouredParts vg
 
+lattice fcc ${d3} origin 0 0 0
+variable rn2 equal "v_R-v_d1"
+ # region crushCyl cylinder z 0 0 ${rn2} ${bottomFill} ${h2} units box side in
+create_atoms 4 region pouredParts
+# set type 4 diameter ${d3}
+group t4 type 4
+fix 9 t4 rigid single 
+ group vg3 union vg2 t4
+ fix		10 t4 gravity 1.0 spherical 0.0 -180.0
+
+  # region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
+ compute		10 all erotate/sphere
+# compute     2 pouredParts group/group measure
+
+
+variable crushsteps equal 30000
+
+
+######
+#todo
+#1. change interaction so it cannot get stuck on wall?
+#2. finish matlab reading crush code
+#3. create new molecule sizes
+######
+fix crushPrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/crushforces.txt screen no
+dump		2 vg3 movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
+            axes yes 0.8 0.02 view 80 -30  #80 -30
+dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3} adiam 4 ${d3}
+run		${crushsteps}
+write_dump all custom r=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
 # fix lang pouredParts langevin 5 10 100.0 48279
 # # group visGroup union pouredParts measure
 # group visGroup union pouredParts temp2
