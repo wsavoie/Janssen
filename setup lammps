@@ -1,0 +1,29 @@
+download lammps from git
+
+sudo apt-get install fftw-static
+sudo apt-get install openmpi-devel
+sudo apt-get install libjpeg
+sudo apt-get install libpng-dev
+sudo apt-get install zlib1g-dev
+
+cd ~/LAMMPS/src/STUBS
+make clean-all
+make
+cd ~/LAMMPS/lib/reax
+make -f Makefile.gfortran
+
+cd ~/LAMMPS/src
+make yes-BODY
+make yes-COMPRESS
+make yes-GRANULAR
+make yes-MISC
+make yes-MOLECULE
+make yes-REAX
+make yes-RIGID
+
+cd ~/LAMMPS/src/MAKE
+#open makefile.type (Makefile.serial)
+#at line LMP_INC add:
+#-DLAMMPS_GZIP -DLAMMPS_MEMALIGN=64 -DLAMMPS_FFMPEG
+
+#at JPG_LIB line add: -ljpeg
