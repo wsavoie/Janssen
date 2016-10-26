@@ -1,4 +1,4 @@
-simMass = 1;
+simMass = 4*pi/3*(0.5)^3;
 simDiam = 1;
 simGrav = 1;
 
@@ -41,8 +41,8 @@ for(i=1:length(radFolds))
 
 
 %         [data(c).dat, data(c).fzS, data(c).lfzS data(c).outStressS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name));
-        [data(c).dat,data(c).fxS data(c).fyS data(c).fzS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name),1);
-
+%         [data(c).dat,data(c).fxS data(c).fyS data(c).fzS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name),1);
+        [data(c).dat,data(c).frS,data(c).fzS] = readJanssenFile(fullfile(fold,radFolds(i).name,partsFolds(j).name),2);
         data(c).simDt= 0.001;%try and get this from file somehow?
 %         data(c).simDt= data(c).dat.timestep;
         data(c).dt  =  tau*data(c).simDt;
@@ -59,8 +59,8 @@ for(i=1:length(radFolds))
         data(c).pouredParts = sortrows(data(c).pouredParts,5);
         data(c).n = length(data(c).pouredParts)-partsSub;
         
-        data(c).outStress=sqrt(data(c).fxS^2+data(c).fyS^2)*epsilon/sigma;
-        
+%         data(c).outStress=sqrt(data(c).fxS^2+data(c).fyS^2)*epsilon/sigma;
+        data(c).outStress=data(c).frS*epsilon/sigma;
         
         %sort particles by height in ascending order
         hs= sortrows(data(c).pouredParts,5);
@@ -91,17 +91,17 @@ for(i=1:length(radFolds))
         
         crushPartsType=4;
         
-        [crush(c).forces crush(c).data]=readCrushFile(fullfile(fold,radFolds(i).name,partsFolds(j).name),1);
-        crush(c).crushParts = crush(c).data.atom_data(crush(c).data.atom_data(:,2)==crushPartsType,:);
-        crush(c).pouredParts = crush(c).data.atom_data(crush(c).data.atom_data(:,2)==pouredPartsType,:);
-        crush(c).n=length(crush(c).crushParts);
-        crush(c).trueWeight=data(c).trueWeight+crush(c).n*m*g;
-        crush(c).fz= crush(c).forces(end,4)*epsilon/sigma;
-        crush(c).areaz=sigma^2*pi*data(c).rad.^2;
-        crush(c).stress=crush(c).fz/crush(c).areaz;
-        hs= sortrows(crush(c).pouredParts,5);
-        crush(c).Hs = mean(hs((end-5):(end),5)); %height is mean of top 3 particle positions
-        crush(c).H  = crush(c).Hs*sigma;
+% % %         [crush(c).forces crush(c).data]=readCrushFile(fullfile(fold,radFolds(i).name,partsFolds(j).name),1);
+% % %         crush(c).crushParts = crush(c).data.atom_data(crush(c).data.atom_data(:,2)==crushPartsType,:);
+% % %         crush(c).pouredParts = crush(c).data.atom_data(crush(c).data.atom_data(:,2)==pouredPartsType,:);
+% % %         crush(c).n=length(crush(c).crushParts);
+% % %         crush(c).trueWeight=data(c).trueWeight+crush(c).n*m*g;
+% % %         crush(c).fz= crush(c).forces(end,4)*epsilon/sigma;
+% % %         crush(c).areaz=sigma^2*pi*data(c).rad.^2;
+% % %         crush(c).stress=crush(c).fz/crush(c).areaz;
+% % %         hs= sortrows(crush(c).pouredParts,5);
+% % %         crush(c).Hs = mean(hs((end-5):(end),5)); %height is mean of top 3 particle positions
+% % %         crush(c).H  = crush(c).Hs*sigma;
         %%%%%%%%%%%%%%%non-units%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %         data(c).k= sqrt((data(c).outStressS(1))^2+(data(c).outStressS(2))^2)/(data(c).fzS/(pi*data(c).rad^2));
 %         data(c).lambda=2*data(c).rad*sigma/(4*muw*data(c).k);
@@ -125,17 +125,18 @@ hold on;
 % janDat = [[data(:).z_lam]',[data(:).stress_rhoglam]'];
 % janDat=sortrows(janDat,1);
 % plot(janDat(:,1),janDat(:,2),'.-','markersize',12);
-% x=0:.1:10;plot(x,1-exp(-x),'-');
+x=0:.1:10;plot(x,1-exp(-x),'-');
 % xlabel('z/\lambda'); ylabel('\sigma_{zz}/\rhog\lambda');
+
 
 janDat2 = [[data(:).H]',[data(:).stress]'];
 janDat2=sortrows(janDat2,2);
 
-crushDat2= [[crush(:).H]',[crush(:).stress]'];
-crushDat2=sortrows(crushDat2,1);
+% % % crushDat2= [[crush(:).H]',[crush(:).stress]'];
+% % % crushDat2=sortrows(crushDat2,1);
 
 plot(janDat2(:,1),janDat2(:,2),'.-','markersize',12);
-plot(crushDat2(:,1),crushDat2(:,2),'.-','markersize',12);
+% % % plot(crushDat2(:,1),crushDat2(:,2),'.-','markersize',12);
 xlabel('z'); ylabel('\sigma_{zz}');
 
 
