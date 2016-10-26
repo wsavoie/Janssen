@@ -11,7 +11,7 @@ comm_modify	vel yes
 neighbor	0.2 bin
 # neigh_modify	delay 0
 variable        w2 equal 10
-variable        h2 equal 20
+variable        h2 equal 75
 
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
@@ -45,9 +45,9 @@ group measure region measure
 variable bottomFill equal "v_h2-5.0"
 lattice fcc ${d3} origin 0 0 0
 variable rn equal "v_R-2*v_d1/2"
-
+#create_atoms 3 box
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
-# set type 3 diameter ${d3}
+#set type 3 diameter ${d3}
 group pouredParts type 3
 
 variable k0     equal 0.1633 #if change sim params must change this!
@@ -83,7 +83,10 @@ fix		6 all nve/sphere  #integrator type
 region cylout cylinder z    0 0 ${R} 0 ${sysCylH} units box       #rad=4
 
 
-pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
+pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
+
+fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
+fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
 
 # fix		bott all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
 #http://lammps.sandia.gov/doc/fix_wall_gran.html
@@ -103,12 +106,13 @@ region my block -${sysCylSize} ${sysCylSize}    -${sysCylSize} 0             0 $
 # group my dynamic cyl region my
 
 
-
+variable p1 equal f_wallout
+variable p2 equal f_bott
 
 compute		1 all erotate/sphere
 #######pour in particles
 fix		ins pouredParts pour ${nParts} 3 300719 vol 0.20 100 region pouredParts
-thermo_style	custom step atoms ke c_1 vol
+thermo_style	custom step atoms ke c_1 v_p1 v_p2
 thermo		100
 
 thermo_modify	lost ignore norm no
@@ -117,11 +121,13 @@ variable ep equal  1
 variable sig equal  1
 variable rr equal  1
 
-fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
-fix    bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
-# fix bott            all wall/lj93 zlo 0.25 ${ep} ${sig} ${rr}
-# fix		walloutall  all wall/region cylout lj93 ${ep} ${sig} ${rr}   #integrator type\
 
+#fix bott            all wall/lj93 zlo 0.25 ${ep} ${sig} ${rr}
+#ix		wallout  all wall/region cylout lj93 ${ep} ${sig} ${rr}   #integrator type\
+
+
+
+fix forcePrint measure print ${pourSteps} "${p1} ${p2}" file r=${R}/${nPartsSTR}/forces.txt screen no
 dump		1 all movie 100 r=${R}/${nPartsSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
@@ -165,8 +171,8 @@ fix 9 t4 rigid single
 # group vg3 union vg t4
  fix		10 t4 gravity 1.0 spherical 0.0 -180.0
 
-  # region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
- # compute		10 all erotate/sphere
+# region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
+# compute		10 all erotate/sphere
 # compute     2 pouredParts group/group measure
 
 # compute        peratom all stress/atom NULL
@@ -182,15 +188,17 @@ variable crushsteps equal 30000
 #3. create new molecule sizes
 ######                                                    
 # fix crushPrint px1 print 100 ${fx} file r=${R}/${nPartsSTR}/crushforces.txt screen no
-
+###################
 variable outerParts equal "v_R-1"
 region cylout2 cylinder z    0 0 ${outerParts} 0 ${sysCylH} side out units box      #rad=4
 group viz region cylout2
 write_dump all custom r=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
 
 dump		2 viz movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
-# dump		1 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
-            axes yes 0.8 0.02 view 80 -30  #80 -30
+	            axes yes 0.8 0.02 view 80 -30  #80 -30
+	
+	# dump		1 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
+    #        axes yes 0.8 0.02 view 80 -30  #80 -30
 # dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3} adiam 4 ${d3}
 run		${crushsteps}
 
