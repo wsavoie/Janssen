@@ -21,7 +21,12 @@ for rads in `seq 2 3`; do
 		echo $ss
 		# lmp_serial -var a ${aArr[$step]} -var cylInRad ${radArr[$rads]} < in.janssen
 		# lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssen
-		lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssenCyl
+		if [ "$HOSTNAME" == "phys42232.physics.gatech.edu" ]; then
+			~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssenSysNoWalls
+		else
+			lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssenSysNoWalls
+		fi
+		
 
 		done;
 done;
