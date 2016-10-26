@@ -161,16 +161,24 @@ group vg region pouredParts
 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
 # lattice fcc ${d3} origin 0 0 0
-variable rn2 equal "v_R-v_d1"
+#ariable rn2 equal "v_R-v_d1"
  # region crushCyl cylinder z 0 0 ${rn2} ${bottomFill} ${h2} units box side in
-create_atoms 4 region pouredParts
+
 
 # set type 4 diameter ${d3}
+
+# group vg3 union vg t4
+ 
+	
+variable temp equal bound(pouredParts,zmax)
+variable crushMin equal "v_temp+2"
+variable crushMax equal "v_crushMin+5"
+variable Rcrush equal "v_R-.5"
+region crushCyl cylinder z 0 0 ${Rcrush} ${crushMin} ${crushMax} units box side in
+create_atoms 4 region crushCyl
 group t4 type 4
 fix 9 t4 rigid single 
-# group vg3 union vg t4
- fix		10 t4 gravity 1.0 spherical 0.0 -180.0
-
+fix		10 t4 gravity 1.0 spherical 0.0 -180.0
 # region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
 # compute		10 all erotate/sphere
 # compute     2 pouredParts group/group measure
@@ -194,7 +202,7 @@ region cylout2 cylinder z    0 0 ${outerParts} 0 ${sysCylH} side out units box  
 group viz region cylout2
 write_dump all custom r=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
 
-dump		2 viz movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
+dump		2 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
 	
 	# dump		1 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
