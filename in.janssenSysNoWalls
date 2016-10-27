@@ -197,11 +197,14 @@ variable crushsteps equal 30000
 ######                                                    
 # fix crushPrint px1 print 100 ${fx} file r=${R}/${nPartsSTR}/crushforces.txt screen no
 ###################
+variable cp1 equal f_wallout
+variable cp2 equal f_bott
+
 variable outerParts equal "v_R-1"
 region cylout2 cylinder z    0 0 ${outerParts} 0 ${sysCylH} side out units box      #rad=4
 group viz region cylout2
 write_dump all custom r=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
-
+fix crushPrint measure print ${crushsteps} "${cp1} ${cp2}" file r=${R}/${nPartsSTR}/crushforces.txt screen no
 dump		2 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
 	
