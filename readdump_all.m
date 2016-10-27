@@ -21,11 +21,10 @@ function [varargout] = readdump_all(varargin)
 %            Purdue University, West Lafayette, IN - 47907, USA.
 
 try
-    dump = fopen(varargin{1},'r');
+    dump = fopen(varargin{1});
 catch
     error('Dumpfile not found!');
 end
-
 i=1;
 while feof(dump) == 0
     id = fgetl(dump);

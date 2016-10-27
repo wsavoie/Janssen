@@ -1,8 +1,14 @@
 % function [data,fzS,lfzS,stressSides] = readJanssenFile(dataFold)
 function varargout = readJanssenFile(dataFold,type)
-
-if(dataFold(end)~='\')
-    dataFold(end+1)='\';
+[~,p]=system('who');
+if(p(1:2)=='ws')
+    if(dataFold(end)~='/')
+        dataFold(end+1)='/';
+    end
+else
+        if(dataFold(end)~='\')
+        dataFold(end+1)='\';
+        end
 end
 switch type
     case 1%before crush implementation
@@ -39,7 +45,7 @@ switch type
         % stressSides=sides.data(2:4);
         frS=abs(force.data(1,1));
         fzS=abs(force.data(1,2));
-        data=readdump_all(horzcat(dataFold,'lastframePour.txt'));
+        data=readdump_all(horzcat(dataFold,'lastFramePour.txt'));
 %          
         varargout{1}=data;
         varargout{2}=frS;
