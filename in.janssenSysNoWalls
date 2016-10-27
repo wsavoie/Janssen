@@ -11,7 +11,7 @@ comm_modify	vel yes
 neighbor	0.2 bin
 # neigh_modify	delay 0
 variable        w2 equal 10
-variable        h2 equal 75
+variable        h2 equal 100
 
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
