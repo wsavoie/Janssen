@@ -2,18 +2,17 @@
 #tSteps     = number of timesteps for filling
 #R          = radius of cylinder
 #nParts     = number of particles
-# lmp_serial -var tSteps 45000 -var R 5 -var nParts 800 < in.janssen
+# lmp_serial -var tSteps 45000 -var R 5 -var nParts 800 -var file "mol.jan" < in.janssen
 atom_style	sphere
 atom_modify map hash
 boundary	f f f
 newton		off
 
-
+print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 comm_modify	vel yes
 neighbor	0.2 bin
 # neigh_modify	delay 0
-variable        w2 equal 10
-variable        h2 equal 25
+variable        h2 equal 105
 
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
@@ -27,10 +26,10 @@ variable pourSteps      equal "v_tSteps"
 region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
 # region measure block -${R} ${R} -${R} ${R} 0 0 units box
 create_box	4 sys
-molecule mol1 mol.jan
+molecule mol1 ${file}
 
 #########poured material##############
-variable bottomFill equal "v_h2-10.0"
+variable bottomFill equal "v_h2-15.0"
 lattice fcc ${fcSp} origin 0 0 0
 variable rn equal "v_R-2*v_d1"
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
@@ -50,7 +49,7 @@ variable g_t    equal "50"
 variable nPartsSTR    string ${nParts}
 shell mkdir MOLr=${R}
 shell mkdir MOLr=${R}/${nPartsSTR}
-shell cp mol.jan MOLr=${R}/${nPartsSTR}/mol.jan
+shell cp ${file} MOLr=${R}/${nPartsSTR}/${file}
 pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
