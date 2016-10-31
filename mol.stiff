@@ -1,13 +1,12 @@
-# line of atoms shear softening
+# dimer molecule
 4 atoms
 
 Coords
 
 1 0 0 0
-2 -1 0 0
-3 1 0 0
-4 2 0 0
-
+2 1 0 0
+3 .5 .8660 0
+4 .5 -.8660 0
 
 
 Types
@@ -31,4 +30,3 @@ Masses
 2 0.5236
 3 0.5236 
 4 0.5236
-
