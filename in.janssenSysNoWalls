@@ -70,12 +70,6 @@ shell mkdir r=${R}/${nPartsSTR}
 #####add gravity to poured particles#######
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 
-#set sim params
-##from pdf, maybe should change stiffness to 2e5?
-# http://lammps.sandia.gov/doc/units.html units in lammps
-#lj units
-
-
 timestep .001
 run_style verlet
 fix		6 all nve/sphere  #integrator type
@@ -88,23 +82,7 @@ pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
 fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
 fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
 
-# fix		bott all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
-#http://lammps.sandia.gov/doc/fix_wall_gran.html
-
 pair_coeff	* *
-
-region px block 0               ${sysCylSize}   -${sysCylSize} ${sysCylSize} 0 ${h2} units box
-region mx block -${sysCylSize}  0               -${sysCylSize} ${sysCylSize} 0 ${h2} units box
-
-region py block -${sysCylSize} ${sysCylSize}    0              ${sysCylSize} 0 ${h2} units box
-region my block -${sysCylSize} ${sysCylSize}    -${sysCylSize} 0             0 ${h2} units box
-
-
-# group px dynamic cyl region px
-# group py dynamic cyl region py
-# group mx dynamic cyl region mx
-# group my dynamic cyl region my
-
 
 variable p1 equal f_wallout
 variable p2 equal f_bott
@@ -122,10 +100,6 @@ variable sig equal  1
 variable rr equal  1
 
 
-#fix bott            all wall/lj93 zlo 0.25 ${ep} ${sig} ${rr}
-#ix		wallout  all wall/region cylout lj93 ${ep} ${sig} ${rr}   #integrator type\
-
-
 
 fix forcePrint measure print ${pourSteps} "${p1} ${p2}" file r=${R}/${nPartsSTR}/forces.txt screen no
 dump		1 all movie 100 r=${R}/${nPartsSTR}/FillContainer.mpg type type &
@@ -135,39 +109,14 @@ dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 
 variable ss equal step
 
-
-
-# fix forcePrint measure print ${pourSteps} "${p1} ${p2} ${p3}" file r=${R}/${nPartsSTR}/forces.txt screen no
-# fix WallForcePrint all print 100 "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/cylForces.txt screen no  
-
 run		${pourSteps}
 
 write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
 undump 1
-
-group px1 region px
-group mx1 region mx
-# compute 55 pouredParts
 run 1
 
-
-##############################new press stuff############################
-# group px  region px
-# group py  region py
-# group mx  region mx
-# group my  region my
-
-group vg region pouredParts
 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
-# lattice fcc ${d3} origin 0 0 0
-#ariable rn2 equal "v_R-v_d1"
- # region crushCyl cylinder z 0 0 ${rn2} ${bottomFill} ${h2} units box side in
-
-
-# set type 4 diameter ${d3}
-
-# group vg3 union vg t4
  
 	
 variable temp equal bound(pouredParts,zmax)
@@ -176,27 +125,14 @@ variable crushMax equal "v_crushMin+5"
 variable Rcrush equal "v_R-.5"
 region crushCyl cylinder z 0 0 ${Rcrush} ${crushMin} ${crushMax} units box side in
 create_atoms 4 region crushCyl
+
 group t4 type 4
 fix 9 t4 rigid single 
 fix		10 t4 gravity 1.0 spherical 0.0 -180.0
-# region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
-# compute		10 all erotate/sphere
-# compute     2 pouredParts group/group measure
 
-# compute        peratom all stress/atom NULL
-# compute        p all reduce sumsq c_peratom[1] c_peratom[2]
-# variable       press equal sqrt(abs(c_p[1]))
-# thermo_style   custom step temp etotal press v_press
 variable crushsteps equal 30000
 
-######
-#todo
-#1. change interaction so it cannot get stuck on wall?
-#2. finish matlab reading crush code
-#3. create new molecule sizes
-######                                                    
-# fix crushPrint px1 print 100 ${fx} file r=${R}/${nPartsSTR}/crushforces.txt screen no
-###################
+                                           
 variable cp1 equal f_wallout
 variable cp2 equal f_bott
 
@@ -207,13 +143,5 @@ write_dump all custom r=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy
 fix crushPrint measure print ${crushsteps} "${cp1} ${cp2}" file r=${R}/${nPartsSTR}/crushforces.txt screen no
 dump		2 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
-	
-	# dump		1 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
-    #        axes yes 0.8 0.02 view 80 -30  #80 -30
-# dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3} adiam 4 ${d3}
-run		${crushsteps}
 
-# write_dump px custom r=${R}/${nPartsSTR}/lastFrameCrush1.txt id type x y z fx
-# write_dump mx custom r=${R}/${nPartsSTR}/lastFrameCrush2.txt id type x y z fx
-# write_dump py custom r=${R}/${nPartsSTR}/lastFrameCrush3.txt id type x y z fy
-# write_dump my custom r=${R}/${nPartsSTR}/lastFrameCrush4.txt id type x y z fy
+run		${crushsteps}
