@@ -1,1 +1,0 @@
-/home/ws/LAMMPS/src/fix_wall_gran.cpp
