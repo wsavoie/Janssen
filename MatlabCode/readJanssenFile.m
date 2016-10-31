@@ -6,9 +6,9 @@ if(p(1:2)=='ws')
         dataFold(end+1)='/';
     end
 else
-        if(dataFold(end)~='\')
+    if(dataFold(end)~='\')
         dataFold(end+1)='\';
-        end
+    end
 end
 switch type
     case 1%before crush implementation
@@ -27,12 +27,12 @@ switch type
         fxS=abs(force.data(1,2));
         fyS=abs(force.data(1,3));
         data=readdump_all(horzcat(dataFold,'lastframePour.txt'));
-%          
+        %
         varargout{1}=data;
         varargout{2}=fxS;
         varargout{3}=fyS;
         varargout{4}=fzS;
-        case 2%linux ocomp edited gran wall
+    case 2%linux ocomp edited gran wall
         
         nOutputs = 3;%[data,fxS,fyS,fzS]
         varargout = cell(1,nOutputs);
@@ -46,7 +46,7 @@ switch type
         frS=abs(force.data(1,1));
         fzS=abs(force.data(1,2));
         data=readdump_all(horzcat(dataFold,'lastFramePour.txt'));
-%          
+        %
         varargout{1}=data;
         varargout{2}=frS;
         varargout{3}=fzS;
