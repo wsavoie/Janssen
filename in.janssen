@@ -27,7 +27,7 @@ variable pourSteps      equal "v_tSteps"
 region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
 # region measure block -${R} ${R} -${R} ${R} 0 0 units box
 create_box	4 sys
-molecule mol1 mol.star
+molecule mol1 mol.jan
 
 #########poured material##############
 variable bottomFill equal "v_h2-10.0"
@@ -48,9 +48,9 @@ variable g_t    equal "50"
 
 
 variable nPartsSTR    string ${nParts}
-shell mkdir r=${R}
-shell mkdir r=${R}/${nPartsSTR}
-
+shell mkdir MOLr=${R}
+shell mkdir MOLr=${R}/${nPartsSTR}
+shell cp mol.jan MOLr=${R}/${nPartsSTR}/mol.jan
 pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
@@ -79,14 +79,14 @@ thermo_modify	lost ignore norm no
 thermo_modify  temp 2
 
 
-fix forcePrint all print ${pourSteps} "${p1} ${p2}" file r=${R}/${nPartsSTR}/forces.txt screen no
-dump		1 all movie 100 r=${R}/${nPartsSTR}/FillContainer.mpg type type &
+fix forcePrint all print ${pourSteps} "${p1} ${p2}" file MOLr=${R}/${nPartsSTR}/forces.txt screen no
+dump		1 all movie 100 MOLr=${R}/${nPartsSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 run		${pourSteps}
 
 
-write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
+write_dump all custom MOLr=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
 undump 1
 run 1
 ##############################crush code############################
@@ -107,9 +107,9 @@ fix		10 t2 gravity 1.0 spherical 0.0 -180.0
 
 variable crushsteps equal 30000
 
-write_dump all custom r=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
-fix crushPrint all print ${crushsteps} "${p1} ${p2}" file r=${R}/${nPartsSTR}/crushforces.txt screen no
-dump		2 all movie 100 r=${R}/${nPartsSTR}/crushMovie.mpg type type &
+write_dump all custom MOLr=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
+fix crushPrint all print ${crushsteps} "${p1} ${p2}" file MOLr=${R}/${nPartsSTR}/crushforces.txt screen no
+dump		2 all movie 100 MOLr=${R}/${nPartsSTR}/crushMovie.mpg type type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 run		${crushsteps}
