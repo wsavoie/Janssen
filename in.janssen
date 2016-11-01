@@ -44,12 +44,12 @@ variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
 variable g_n    equal "50"
 variable g_t    equal "50"
 
-
-
+# shell mkdir MOLr=${R}/${nPartsSTR}
+variable mainDir string ${file}-r=${R}
 variable nPartsSTR    string ${nParts}
-shell mkdir MOLr=${R}
-shell mkdir MOLr=${R}/${nPartsSTR}
-shell cp ${file} MOLr=${R}/${nPartsSTR}/${file}
+shell mkdir ${mainDir}
+shell mkdir ${mainDir}/${nPartsSTR}
+shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
 pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
@@ -78,14 +78,14 @@ thermo_modify	lost ignore norm no
 thermo_modify  temp 2
 
 
-fix forcePrint all print ${pourSteps} "${p1} ${p2}" file MOLr=${R}/${nPartsSTR}/forces.txt screen no
-dump		1 all movie 100 MOLr=${R}/${nPartsSTR}/FillContainer.mpg type type &
+fix forcePrint all print ${pourSteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/forces.txt screen no
+dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg type type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 run		${pourSteps}
 
 
-write_dump all custom MOLr=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
+write_dump all custom ${mainDir}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
 undump 1
 run 1
 ##############################crush code############################
@@ -106,9 +106,9 @@ fix		10 t2 gravity 1.0 spherical 0.0 -180.0
 
 variable crushsteps equal 30000
 
-write_dump all custom MOLr=${R}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
-fix crushPrint all print ${crushsteps} "${p1} ${p2}" file MOLr=${R}/${nPartsSTR}/crushforces.txt screen no
-dump		2 all movie 100 MOLr=${R}/${nPartsSTR}/crushMovie.mpg type type &
+write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
+fix crushPrint all print ${crushsteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/crushforces.txt screen no
+dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg type type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
 dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
 run		${crushsteps}

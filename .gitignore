@@ -2,3 +2,6 @@
 MOLr*/
 Results*/
 log.lammps
+soft-r*
+stiff-r*
+*.m~
