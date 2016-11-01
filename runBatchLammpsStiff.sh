@@ -20,7 +20,7 @@ for rads in `seq 3 3`; do
 		echo $np
 		# ss=$(python -c "print(int(150*${np}))"); 
 		# ss=$(python -c "print(int(3162*${np}/(((${radArr[$rads]}-2.0)*3)*(${radArr[$rads]}-2.0)*3)+40000))"); 
-		ss=$(python -c "print(int(8000*${np}*4/(${r}*${r}*6-12*${r}+6)+50000))"); 
+		ss=$(python -c "print(int(5000*${np}*4/(${r}*${r}*6-12*${r}+6)+50000))"); 
 		echo $ss
 		# lmp_serial -var a ${aArr[$step]} -var cylInRad ${radArr[$rads]} < in.janssen
 		# lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssen
