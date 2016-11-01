@@ -16,7 +16,7 @@ for rads in `seq 0 3`; do
 		np=$(python -c "print(int(6*${phi}*${radArr[$rads]}*${radArr[$rads]}*${h}*${fillP[$n]}))");
 		echo $np
 		# ss=$(python -c "print(int(150*${np}))"); 
-		# ss=$(python -c "print(int(3162*${np}/(((${radArr[$rads]}-2.0)*3)*(${radArr[$rads]}-2.0)*3)+30000))"); 
+		# ss=$(python -c "print(int(3162*${np}/(((${radArr[$rads]}-2.0)*3)*(${radArr[$rads]}-2.0)*3)+40000))"); 
 		ss=$(python -c "print(int(3162*${np}/(${r}*${r}*6-12*${r}+6)+50000))"); 
 		echo $ss
 		# lmp_serial -var a ${aArr[$step]} -var cylInRad ${radArr[$rads]} < in.janssen
