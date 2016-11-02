@@ -12,7 +12,7 @@ print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 comm_modify	vel yes
 neighbor	0.2 bin
 # neigh_modify	delay 0
-variable        h2 equal 105
+variable        h2 equal 120
 
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
@@ -29,7 +29,7 @@ create_box	4 sys
 molecule mol1 ${file}
 
 #########poured material##############
-variable bottomFill equal "v_h2-15.0"
+variable bottomFill equal "v_h2-20"
 lattice fcc ${fcSp} origin 0 0 0
 variable rn equal "v_R-2*v_d1"
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
