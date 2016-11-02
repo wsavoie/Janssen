@@ -9,9 +9,13 @@ radArr=(7.0 8.0 9.0 10.0 6.0 6.0 6.0 6.0 6.0);
 fillP=(221 443 664 885 1106 1328 1549 1770 1991 2213 2434 2655 2876 3098 3319 3540 3761);
 #fillP=(0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8);
 # for rads in `seq 0 14`; do
-fname="${1}";
-cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname}  
-for rads in `seq 3 3`; do
+
+#./runBatchLammpsMol.sh 10000 8 soft
+
+framePerPart=${1};
+partPerDimer=${2};
+fname="${3}";
+cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname}  `seq 3 3`; do
 	for n in `seq 0 16`; do #0-7
 		h=100;
 		phi=0.26;
@@ -25,13 +29,12 @@ for rads in `seq 3 3`; do
 		echo $ss
 		# lmp_serial -var a ${aArr[$step]} -var cylInRad ${radArr[$rads]} < in.janssen
 		# lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssen
-		if [ "$HOSTNAME" == "phys42232.physics.gatech.edu" ]; then
+		if [ "$HOSTNAME" == "phys42232.physics.gatech.edu" ]
+		then
 			~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} -var file ${fname} < in.janssen
 		else
 			lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${np} < in.janssen
 		fi
-		
-
 		done;
 done;
 rm -f ${fname}
