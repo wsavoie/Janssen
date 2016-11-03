@@ -5,7 +5,7 @@
 # lmp_serial -var tSteps 45000 -var R 5 -var nParts 800 -var file "mol.jan" < in.janssen
 atom_style	sphere
 atom_modify map hash
-boundary	f f f
+boundary	f f fm
 newton		off
 
 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -20,7 +20,7 @@ variable d3             equal 1   #poured material
 variable fcSp           equal 1
 
 variable sysCylSize     equal "v_R+4*v_d1"
-variable sysCylH        equal "v_h2+5"
+variable sysCylH        equal "v_h2+15"
 variable pourSteps      equal "v_tSteps"
 
 region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
@@ -45,7 +45,7 @@ variable g_n    equal "50"
 variable g_t    equal "50"
 
 # shell mkdir MOLr=${R}/${nPartsSTR}
-variable mainDir string ${file}-r=${R}
+variable mainDir string ${file}_r=${R}
 variable nPartsSTR    string ${nParts}
 shell mkdir ${mainDir}
 shell mkdir ${mainDir}/${nPartsSTR}
