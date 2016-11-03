@@ -19,7 +19,7 @@ cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname}
 #read # atoms line and return #
 atomNum=$(sed -n '2p' < $fname|grep -o [0-9]*);
 for rads in `seq 3 3`; do
-	for n in `seq 15 16`; do #0-7
+	for n in `seq 0 16`; do #0-7
 		h=100;
 		phi=0.26;
 		r=${radArr[$rads]}
