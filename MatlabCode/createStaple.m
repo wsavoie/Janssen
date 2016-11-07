@@ -1,13 +1,18 @@
-function [pos]=createStaple(d,l,w,t,deg)
+function [pos]=createStaple(d,l,w,t,deg,overlap)
 %CREATESTAPLE
 %d=diameter
 %l=length in spheres
 %w=width in spheres 0 = only staple spine
 %t= [theta1,theta2]
 %deg = specification of t in degrees or radians
+%overlap= between 0 and 1, percentage of overlap between spheres
 % clear all;
 % d = 1; %diameter in lammps, spheres are defined by diameter
 r=d/2;
+figure(1234);
+
+ol=1-overlap;
+
 % w=4; %center barb width
 % l=2; %outer barb lengths defined as first circle not in center barb
 
@@ -32,7 +37,7 @@ pos=zeros(2*l+w,3);
 
 %make spine of staple
 for i=1:w
-    pos(i,1)= (i-1)*d;
+    pos(i,1)= (i-1)*d*ol;
     pos(i,2)= 0;
 end
 
@@ -40,15 +45,15 @@ end
 c=w+1;
 for i=[0 1]
     for j=1:l
-        pos(c,1)=i*(w-1)*d+j*d*cos(t(i+1));
-        pos(c,2)=j*sin(t(i+1))*d;
+        pos(c,1)=ol*d*(i*(w-1)+j*cos(t(i+1))); %x pos
+        pos(c,2)=j*sin(t(i+1))*d*ol;
         c=c+1;
     end
 end
 
 %round to 8 places
 pos=round(pos,8);
-figure(1);
+
 axis equal
 hold on;
 for i=1:size(pos,1)
