@@ -33,9 +33,9 @@ for rads in `seq 3 3`; do
 		echo $ss
 		if [ "$HOSTNAME" == "phys42232.physics.gatech.edu" ]
 		then
-			~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} -var file ${fname} < in.janssen
+			~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} -var file ${fname} < janssenDimer.lammps
 		else
-			lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} < in.janssen
+			lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} < janssenDimer.lammps
 		fi
 		done;
 done;
