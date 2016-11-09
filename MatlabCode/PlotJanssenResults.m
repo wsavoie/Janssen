@@ -21,9 +21,9 @@ pouredPartsType=3; %type value of poured particles
 
 muw=0.5;
 % fold = ('A:\LAMMPS\Janssen\');
-fold = uigetdir('A:\LAMMPS\Janssen');
+fold = uigetdir('~/Janssen/Results');
 radFolds =dir2(fold);
-radFolds= radFolds(strncmpi('r=', {radFolds.name}, 2));
+% radFolds=regexp({radFolds.name},'r=([0-9.]+)','match');
 if isempty(radFolds)
     error('no files found!');
 end
@@ -156,15 +156,15 @@ for(i=1:length(radFolds))
 end
 figure(1);
 hold on;
+x=0:.1:10;plot(x,1-exp(-x),'-');
 lmpDat=[hS(:)./lambdaS(:),sigzzS(:)./(rhoS(:)*gS.*lambdaS(:))];
 lmpDat=sortrows(lmpDat,1); %sort by z/lam
 xlabel('z/\lambda'); ylabel('\sigma_{zz}/\rhog\lambda');
 plot(lmpDat(:,1),lmpDat(:,2)/max(lmpDat(:,2)),'o','markersize',7);
 plot(lmpDat(:,1),lmpDat(:,2),'o','markersize',7);
-% x=0:.1:10;plot(x,1-exp(-x),'-');
+
 axis([0,10,0,2]);
 
-lmpDat=[hS(:)./lambdaS(:),sigzzS(:)./(rhoS(:)*gS.*lambdaS(:))];
 for(i=1:c)
 plot(lmpDat(i,1),lmpDat(i,2)/max(lmpDat(:,2)),'o','markersize',7);
 pts(dataFold{i});
