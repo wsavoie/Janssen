@@ -9,11 +9,11 @@ boundary	f f fm
 newton		off
 
 
-comm_modify	vel yes
-neighbor	0.2 bin
-# neigh_modify	delay 0
-variable        h2 equal 120
-
+comm_modify	vel yes cutoff 2.5
+#neighbor	0.2 bin
+#neigh_modify	delay 0
+variable        h2 equal 70
+fix             prop all property/atom mol ghost yes
 variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1   #poured material
@@ -21,8 +21,7 @@ variable fcSp           equal 1
 
 variable sysCylSize     equal "v_R+4*v_d1"
 variable sysCylH        equal "v_h2+15"
-variable pourSteps      equal "v_tSteps"
-print "system should run for ${pourSteps} steps"
+
 region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
 # region measure block -${R} ${R} -${R} ${R} 0 0 units box
 create_box	4 sys
@@ -54,12 +53,16 @@ pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
-fix		6 all nve/sphere  #integrator type
+# fix		6 all nve  #integrator type
 fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
 fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
 
-fix     rigidMol pouredParts rigid/small molecule mol mol1 
-fix		ins pouredParts pour ${nParts} 1 300719 vol 0.20 100 region pouredParts mol mol1 rigid rigidMol
+fix     rigidMol pouredParts rigid/small molecule mol mol1
+neigh_modify exclude molecule all
+fix		ins pouredParts pour ${nParts} 0 300719 vol 0.20 100 region pouredParts mol mol1 rigid rigidMol
+variable pourTime equal f_ins
+variable pourSteps      equal "v_tSteps+v_pourTime"
+print "system should run for ${pourSteps} steps"
 
 timestep .001
 run_style verlet
@@ -67,28 +70,32 @@ run_style verlet
 
 variable p1 equal f_wallout
 variable p2 equal f_bott
-
-compute		1 all erotate/sphere
-compute 2 all temp/sphere
+variable p3 equal f_rigidMol
+# compute		1 all erotate/sphere
+compute 2 all temp
 compute_modify	thermo_temp dynamic yes
 
-thermo_style	custom step atoms ke c_1 v_p1 v_p2
+thermo_style	custom step atoms v_p1 v_p2 v_p3
 thermo		100
 thermo_modify	lost ignore norm no
-thermo_modify  temp 2
-
+# thermo_modify  temp 2
 
 fix forcePrint all print ${pourSteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/forces.txt screen no
-dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg type type &
+
+#use type type for color by type or type v_mol3 for diff colors
+variable        colors string "red green blue yellow white purple pink orange lime gray"
+variable mol3 atom mol%10
+dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type  & 
             axes yes 0.8 0.02 view 80 -30  #80 -30
-dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+# dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3} 
+dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${pourSteps}
 
 
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
 undump 1
 run 1
-##############################crush code############################
+##############################shake code############################
 # print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 unfix wallout
 unfix bott
@@ -98,26 +105,13 @@ fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcyl
 fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL wiggle z ${maxAmp} 3.06  #integrator type
 
 
-variable temp equal bound(pouredParts,zmax)
-variable crushMin equal "v_temp+2"
-variable crushMax equal "v_crushMin+5"
-variable Rcrush equal "v_R-.5"
-
-# region crushCyl cylinder z 0 0 ${Rcrush} ${crushMin} ${crushMax} units box side in
-# lattice fcc ${d1} origin 0 0 0
-
-# create_atoms 4 region crushCyl
-
-# group t4 type 4
-# fix 9 t4 rigid single 
-# fix		10 t4 gravity 1.0 spherical 0.0 -180.0
-
 variable crushsteps equal 1800000
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
 fix crushPrint all print ${crushsteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/crushforces.txt screen no
-dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg type type &
+dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
-dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+# dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${crushsteps}
 
 

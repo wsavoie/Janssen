@@ -7,9 +7,9 @@ atom_style	sphere
 boundary	f f f
 newton		off
 
-comm_modify	vel yes
+comm_modify	vel yes  cutoff 2.5
 neighbor	0.2 bin
-# neigh_modify	delay 0
+neigh_modify	delay 0
 variable        w2 equal 10
 variable        h2 equal 100
 
@@ -100,7 +100,7 @@ lattice fcc ${d1} origin 0 0 0
 create_atoms 4 region crushCyl
 
 group t4 type 4
-fix 9 t4 rigid single 
+fix 9 t4 rigid single * off off off
 fix		10 t4 gravity 1.0 spherical 0.0 -180.0
 
 variable crushsteps equal 30000
