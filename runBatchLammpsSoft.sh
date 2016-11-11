@@ -14,7 +14,8 @@ fillP=(1770 3540 5310 7080 8850 10620 12390 14160 15930 17700 19470 21240 23010 
 #./runBatchLammpsMol.sh 10000 8 soft
 framePerPart=${1};
 fname="${2}";
-cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname} 
+cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname}
+lammpsFile=janssenDimer.lammps
 #read second line from file and grep number from that line
 #read # atoms line and return #
 atomNum=$(sed -n '2p' < $fname|grep -o [0-9]*);
@@ -33,9 +34,9 @@ for rads in `seq 3 3`; do
 		echo $ss
 		if [ "$HOSTNAME" == "phys42232.physics.gatech.edu" ]
 		then
-			~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} -var file ${fname} < janssenDimer.lammps
+			~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} -var file ${fname} < ${lammpsFile}
 		else
-			lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} < janssenDimer.lammps
+			lmp_serial -var tSteps ${ss} -var R ${radArr[$rads]} -var nParts ${nm} < ${lammpsFile}
 		fi
 		done;
 done;
