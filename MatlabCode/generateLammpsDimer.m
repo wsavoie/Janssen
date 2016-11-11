@@ -1,4 +1,4 @@
-function [] = generateLammpsDimer( coords,types,diams,masses,filename,fold)
+function [] = generateLammpsDimer( coords,types,diams,masses,com,momI,filename,fold)
 %MAKELAMMPSDIMER generates LAMMPS molecule template file describing
 %describing dimer given by inputs
 
@@ -10,6 +10,12 @@ fprintf(fid,'# dimer file created by matlab\n');
 %%create header info
 %define number of atoms in
 fprintf(fid,'%g atoms\n',N);
+%mass
+fprintf(fid,'%g mass\n', sum(masses));
+%com
+fprintf(fid,'%g %g %g com\n',com(1),com(2),com(3));
+%moment of inertia
+fprintf(fid,'%.6g %.6g %.6g %.6g %.6g %.6g inertia\n', momI(1),momI(2),momI(3),momI(4),momI(5),momI(6));
 fprintf(fid,'\n');
 
 %% start file info
@@ -37,8 +43,8 @@ fprintf(fid,'\n');
 %define masses
 fprintf(fid,'Masses\n\n',N);
 for i=1:N
-    fprintf(fid,'%g %1.12g\n',N,masses(i));
+    fprintf(fid,'%g %1.12g\n',i,masses(i));
 end
-
+fclose(fid);
 end
 
