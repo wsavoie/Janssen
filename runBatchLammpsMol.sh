@@ -12,10 +12,10 @@ fillP=(1770 3540 5310 7080 8850 10620 12390 14160 15930 17700 19470 21240 23010 
 # for rads in `seq 0 14`; do
 
 #./runBatchLammpsMol.sh 10000 8 soft
-framePerPart=${1};
+settlingTime=${1};
 fname="${2}";
 cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname} 
-lammpsFile=janssenDimer.lammps
+lammpsFile=DimerShake.lammps
 #read second line from file and grep number from that line
 #read # atoms line and return #
 atomNum=$(sed -n '2p' < $fname|grep -o [0-9]*);
@@ -31,7 +31,7 @@ for rads in `seq 4 4`; do
 		# np=$(python -c "print(int(6*${phi}*${radArr[$rads]}*${radArr[$rads]}*${h}*${fillP[$n]}))");
 		echo $np
 		# ss=$(python -c "print(int(${framePerPart}*${np}/(${r}*${r}*6-12*${r}+6)+20000))"); 
-		ss=20000;
+		ss=${settlingTime};
 		echo $ss
 
 		if [ "$HOSTNAME" == "phys42232.physics.gatech.edu" ]

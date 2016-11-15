@@ -55,8 +55,9 @@ shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
 pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
+variable grav equal 1
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
-fix		6 all nve/sphere  #integrator type
+# fix		6 all nve/sphere  #integrator type
 fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
 fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
 
@@ -66,6 +67,7 @@ fix		ins pouredParts pour ${nParts} 0 300719 vol 0.80 100 region pouredParts mol
 variable pourTime equal f_ins
 variable pourSteps      equal "v_tSteps+v_pourTime"
 print "system should run for ${pourSteps} steps"
+
 timestep .001
 run_style verlet
 
@@ -81,10 +83,11 @@ thermo		100
 thermo_modify	lost ignore norm no
 # thermo_modify  temp 2
 
-variable        colors string "red green blue yellow white purple pink orange lime gray"
-variable mol3 atom mol%10
+
 
 fix forcePrint all print ${pourSteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/forces.txt screen no
+variable        colors string "red green blue yellow white purple pink orange lime gray"
+variable mol3 atom mol%10
 dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
 # dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
