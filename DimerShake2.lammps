@@ -33,7 +33,7 @@ molecule mol1 ${file}
 #########poured material##############
 variable bottomFill equal "v_h2-20"
 lattice fcc ${fcSp} origin 0 0 0
-variable rn equal "v_R-5*v_d1"
+variable rn equal "v_R-7.5*v_d1"
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
 group pouredParts type 3
 
