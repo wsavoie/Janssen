@@ -1,15 +1,15 @@
 % create dimer
 
-l=4;
-w=6;
+l=36;
+w=28;
 
 N=2*l+w;
 t=[90,90]; deg=1; %setting theta is degrees
 
-diam=1;
-type=1;
+diam=0.5;
+type=3;
 mass=0.5236;
-overlap=0.25;
+overlap=0.5;
 %create matrices for generation
 pos=createStaple(diam,l,w,t,deg,overlap);
 types=type*ones(1,N);
