@@ -52,14 +52,14 @@ variable nPartsSTR    string ${nParts}
 shell mkdir ${mainDir}
 shell mkdir ${mainDir}/${nPartsSTR}
 shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
-pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
+pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
 variable grav equal 1
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 # fix		6 all nve/sphere  #integrator type
-fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
-fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
+fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R}   #integrator type
+fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL  #integrator type
 
 fix     rigidMol pouredParts rigid/small molecule mol mol1 
 neigh_modify exclude molecule all
