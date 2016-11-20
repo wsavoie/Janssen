@@ -9,14 +9,15 @@ lammpsFile=DimerShake.lammps
 #read second line from file and grep number from that line
 #read # atoms line and return #
 
-for lws in `seq 11 12`; do
+for lws in `seq 14 14`; do
 		fname=$(printf 'w=28_l=%s' "${lws}")
 		cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname} 
 		#nm=number of molecules
 		nm=1200
 		echo ${fname}
 		ss=${settlingTime};
-		~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${rad} -var nParts ${nm} -var file ${fname} < ${lammpsFile}
+		#~/LAMMPS/src/lmp_serial -var tSteps ${ss} -var R ${rad} -var nParts ${nm} -var file ${fname} < ${lammpsFile}
+		mpirun -np 4 ~/LAMMPS/src/lmp_gpu -var tSteps ${ss} -var R ${rad} -var nParts ${nm} -var file ${fname} < ${lammpsFile}
 		rm -f ${fname}
 done;
 

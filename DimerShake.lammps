@@ -9,7 +9,7 @@ boundary	f f fm
 newton		off
 
 
-comm_modify	vel yes cutoff 2.5
+comm_modify	vel yes mode single cutoff 10
 #neighbor	0.2 bin
 #neigh_modify	delay 0
 variable        h2 equal 70
@@ -20,7 +20,7 @@ variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1   #poured material
 variable fcSp           equal 1
-
+variable diam           equal 0.5
 variable sysCylSize     equal "v_R+4*v_d1"
 variable sysCylH        equal "v_h2+15"
 
@@ -37,14 +37,14 @@ variable rn equal "v_R-5*v_d1"
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
 group pouredParts type 3
 
-variable k0     equal 0.1633 #if change sim params must change this!
+variable k0     equal 1.633 #if change sim params must change this!
 variable mup    equal 0.5
 variable muw    equal 0.5
 variable kn     equal "2*10^6*v_k0"
 
-variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
-variable g_n    equal "50"
-variable g_t    equal "50"
+variable kt     equal "2/7*v_kn"
+variable g_n    equal "2700"
+#variable g_t    equal "50"
 
 # shell mkdir MOLr=${R}/${nPartsSTR}
 variable mainDir string ${file}_r=${R}
@@ -52,14 +52,14 @@ variable nPartsSTR    string ${nParts}
 shell mkdir ${mainDir}
 shell mkdir ${mainDir}/${nPartsSTR}
 shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
-pair_style gran/hertz/history ${kn} ${kt} ${g_n} NULL ${mup} 1
+pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
 pair_coeff	* *
 
 variable grav equal 1
 fix		2 pouredParts gravity ${grav} spherical 0.0 -180.0
 # fix		6 all nve  #integrator type
-fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
-fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
+fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R}   #integrator type
+fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL  #integrator type
 
 fix     rigidMol pouredParts rigid/small molecule mol mol1
 neigh_modify exclude molecule all
@@ -67,33 +67,28 @@ fix		ins pouredParts pour ${nParts} 0 300719 vol 0.80 100 region pouredParts mol
 variable pourTime equal f_ins
 variable pourSteps      equal "v_tSteps+v_pourTime"
 print "system should run for ${pourSteps} steps"
-
+variable tempMaxz equal bound(pouredParts,zmax) 
 variable dtt equal .001
 timestep ${dtt}
 run_style verlet
 
 
-variable p1 equal f_wallout
-variable p2 equal f_bott
-variable p3 equal f_rigidMol
 # compute		1 all erotate/sphere
 compute 2 all temp
 compute_modify	thermo_temp dynamic yes
 
-thermo_style	custom step atoms v_p1 v_p2 v_p3
+thermo_style	custom step atoms v_tempMaxz
 thermo		100
 thermo_modify	lost ignore norm no
 # thermo_modify  temp 2
 
-fix forcePrint all print ${pourSteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/forces.txt screen no
-
 #use type type for color by type or type v_mol3 for diff colors
 variable        colors string "red green blue yellow white purple pink orange lime gray"
 variable mol3 atom mol%10
-dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type  & 
-            axes yes 0.8 0.02 view 80 -30  #80 -30
-# dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3} 
-dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
+# dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type  & 
+#             axes yes 0.8 0.02 view 80 -30  #80 -30
+# dump_modify 1 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
+# dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${pourSteps}
 
 
@@ -114,30 +109,28 @@ variable maxAmp equal "2*v_grav/(v_omega*v_omega)"
 variable period equal "1/(v_freq)"
 variable totOsc equal "600"
 
+
 variable crushsteps equal "round(v_totOsc*v_period*1/v_dtt)"
 print "\n\nCRUSHSTEPS: ${crushsteps}\n\n"
-fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R} wiggle z ${maxAmp} ${period}   #integrator type
-fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL wiggle z ${maxAmp} ${period} #integrator type
+fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R} wiggle z ${maxAmp} ${period}   #integrator type
+fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL wiggle z ${maxAmp} ${period} #integrator type
 
 
-
-write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
-fix crushPrint all print ${crushsteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/crushforces.txt screen no
-dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
-	            axes yes 0.8 0.02 view 80 -30  #80 -30
-# dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
-dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
+#dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
+#	            axes yes 0.8 0.02 view 80 -30  #80 -30
+#dump_modify 2 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
+#dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${crushsteps}
-
+# undump 2
 
 unfix wallout
 unfix bott
 
 
-fix		wallout all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}  #integrator type
-fix    	bott    all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane 0 NULL  #integrator type
+fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R}  #integrator type
+fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL  #integrator type
 
 run		30000
 
-write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameEnd.txt id type x y z fx fy fz
+write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameEnd.txt id type x y z fx fy fz tempMaxz
 run 1
