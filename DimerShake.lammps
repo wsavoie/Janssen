@@ -9,7 +9,7 @@ boundary	f f fm
 newton		off
 
 
-comm_modify	vel yes mode single cutoff 10
+comm_modify	vel yes
 #neighbor	0.2 bin
 #neigh_modify	delay 0
 variable        h2 equal 70
@@ -38,7 +38,7 @@ region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
 group pouredParts type 3
 
 variable k0     equal 1.633 #if change sim params must change this!
-variable mup    equal 0.5
+variable mup    equal 0.25
 variable muw    equal 0.5
 variable kn     equal "2*10^6*v_k0"
 
@@ -54,7 +54,6 @@ shell mkdir ${mainDir}/${nPartsSTR}
 shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
 pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
 pair_coeff	* *
-
 variable grav equal 1
 fix		2 pouredParts gravity ${grav} spherical 0.0 -180.0
 # fix		6 all nve  #integrator type
@@ -67,7 +66,7 @@ fix		ins pouredParts pour ${nParts} 0 300719 vol 0.80 100 region pouredParts mol
 variable pourTime equal f_ins
 variable pourSteps      equal "v_tSteps+v_pourTime"
 print "system should run for ${pourSteps} steps"
-variable tempMaxz equal bound(pouredParts,zmax) 
+variable tempMaxz equal bound(pouredParts,zmax)
 variable dtt equal .001
 timestep ${dtt}
 run_style verlet
@@ -78,22 +77,22 @@ compute 2 all temp
 compute_modify	thermo_temp dynamic yes
 
 thermo_style	custom step atoms v_tempMaxz
-thermo		100
+thermo		1000
 thermo_modify	lost ignore norm no
 # thermo_modify  temp 2
 
 #use type type for color by type or type v_mol3 for diff colors
 variable        colors string "red green blue yellow white purple pink orange lime gray"
 variable mol3 atom mol%10
-# dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type  & 
-#             axes yes 0.8 0.02 view 80 -30  #80 -30
-# dump_modify 1 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
-# dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
+dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type  & 
+            axes yes 0.8 0.02 view 80 -30  #80 -30
+dump_modify 1 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
+dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${pourSteps}
 
-
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
-# undump 1
+undump 1
+
 run 1
 ##############################shake code############################
 # print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -116,13 +115,13 @@ fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylind
 fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL wiggle z ${maxAmp} ${period} #integrator type
 
 
-#dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
-#	            axes yes 0.8 0.02 view 80 -30  #80 -30
-#dump_modify 2 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
-#dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
+dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
+	            axes yes 0.8 0.02 view 80 -30  #80 -30
+dump_modify 2 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
+dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${crushsteps}
-# undump 2
 
+undump 2
 unfix wallout
 unfix bott
 
@@ -132,5 +131,10 @@ fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zpla
 
 run		30000
 
-write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameEnd.txt id type x y z fx fy fz tempMaxz
+compute cnk all chunk/atom molecule
+compute myChunk all com/chunk cnk
+compute myChunk1 all property/chunk cnk count
+
+fix comOut all ave/time 1 1 1 c_myChunk1 c_myChunk[*] file ${mainDir}/${nPartsSTR}/finalHeight.txt mode vector
+write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameEnd.txt id type x y z fx fy fz 
 run 1
