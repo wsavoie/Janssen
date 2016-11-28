@@ -32,8 +32,8 @@ if(~dataLoaded)
         f2=dir2(fname);
         Np=f2.name;
 %         dat=readdump_all([fname,'/',Np,'/lastFrameEnd.txt']);
-        L(i)=l*D*o;
-        W(i)=w*D*o;
+        L(i)=l*D*o-D;
+        W(i)=w*D*o-D;
         R(i)=r;
         N(i)=str2double(Np);
 %         pouredParts = dat.atom_data(dat.atom_data(:,2)==pouredPartsType,:);
