@@ -16,10 +16,9 @@ cd ~/LAMMPS/src
 
 python Make.py -p gpu -gpu mode=double arch=35 -a lib-all
 #-j 8 should improve number of cores during compile time
-python Make.py -j 8-p gpu -gpu mode=double arch=35 -a lib-all
+python Make.py -j 8 -p gpu -gpu make=linux.mixed mode=mixed arch=35 -a lib-all
 
 make yes-BODY
-make yes-COMPRESS
 make yes-GRANULAR
 make yes-MISC
 make yes-MOLECULE
