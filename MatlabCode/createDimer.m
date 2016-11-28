@@ -1,6 +1,6 @@
 % create dimer
-% for i=0:36
-l=38;
+for i=0:6:36
+l=i;
 w=28;
 
 N=2*l+w;
@@ -16,10 +16,10 @@ types=type*ones(1,N);
 masses=mass*ones(1,N);
 diams=diam*ones(1,N);
 % filename=['a1=',num2str(t(1)),'_a2=',num2str(t(2)),'_l=',num2str(l),'_w=',num2str(w),'_d=',num2str(diam),'_o=',num2str(overlap)];
-filename=['w=',num2str(w),'_l=',num2str(l)];
+filename=['w=',num2str(w),'_l=',num2str(l),'_o=',num2str(overlap)];
 fold='/home/ws/Janssen/Dimers/';
 
 [momI,com]=CalcMomentOfInertiaAndCOM(pos,masses);
 
 generateLammpsDimer( pos,types,diams,masses,com,momI,filename,fold);
-% end
+end
