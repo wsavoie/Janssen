@@ -7,3 +7,7 @@ stiff-r*
 *.m~
 a*/
 w=*/
+w=*
+a1=*
+tmp.out
+log.cite
