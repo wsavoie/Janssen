@@ -11,3 +11,6 @@ w=*
 a1=*
 tmp.out
 log.cite
+*.mat
+*~
+
