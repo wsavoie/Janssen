@@ -4,7 +4,7 @@ gS = 1; %sim gravity
 dtS=.001; %sim timestep
 
 clear pts;
-
+dir2
 g       = 9.8;         %actual gravity
 d       = 0.006;       %actual single particle diam
 m       = 0.0001;      %actual single particle mass .0001165 kg

@@ -1,55 +1,65 @@
-pouredPartsType=3; %type value of poured particles
-fold = uigetdir('~/Janssen/Results');
-radFolds =dir2(fold);
-% radFolds=regexp({radFolds.name},'r=([0-9.]+)','match');
-if isempty(radFolds)
-    error('no files found!');
+function [out]=readShake(D,o,pouredPartsType,fold,PourOrCrush)
+
+[path,outfold,ext]=fileparts(fold);
+fname=[outfold,ext];
+crushType=2;
+Np=dir2(fold,1);
+expr='=([-\d.]+)';
+[pat, t] =regexp(fname,expr,'tokens','match');
+p = str2double([pat{:}]);
+if length(p)==4
+    w=p(1); l=p(2);
+    o=p(3); r=p(4);
+elseif length(p)==3
+    w=p(1); l=p(2); r=p(4);
+elseif length(p)==7
+    a1=p(1); a2=p(2); l=p(3); w=p(4); d=p(5); o=p(6); r=p(7);
+else
+    error(['unrecognizable amount of params for folder name ',fname...
+        ,' found ',num2str(length(p))]);
 end
 
-c = 1;
-clear data
-D=0.5;
-o=0.5;
-dataLoaded=0;
-for(i=1:length(radFolds))
-    
-    if isequal(radFolds(i).name,'stapleDat.mat');
-        dataLoaded=1;
-        load([fold,'/','stapleDat.mat']);
+%get molecule number file
+f2=dir2(fold);
+Np=f2.name;
+
+%get atoms per molecule
+datname=fname;
+%really ugly way to get file
+apm=importdata(fullfile(fold,Np,datname(1:end-7)));
+apm=regexp(apm.textdata(2),'\d*','match');
+apm = str2double(apm{1});
+%check if poured/apm
+
+if(PourOrCrush==0) %0 = pour
+    dat=readdump_all(fullfile(fold,Np,'lastFramePour.txt'));
+elseif(PourOrCrush==1) %1 = crush
+    dat=readdump_all(fullfile(fold,Np,'lastFrameCrush.txt'));
+    crushParts = length(dat.atom_data(dat.atom_data(:,2)==crushType,:));
+    if(abs(crushParts-12302)>10)
+        pts(fold,crushParts,' ',crushParts,'/',12302,' crush particles'); 
     end
 end
+L=l*D*o-D;
+W=w*D*o-D;
+N=str2double(Np);
 
-if(~dataLoaded)
-    n=length(radFolds);
-    L=zeros(n,1);
-    W=L;R=L;N=L;VP=L;phi=L;LW=L;
-    for(i=1:n)
-        pts(i,'/',n);
-        expr='([\d.]+)';
-        fname =fullfile(fold,radFolds(i).name);
-        [pat, t] =regexp(radFolds(i).name,expr,'tokens','match');
-        w=str2double(pat{1}); l=str2double(pat{2}); r=str2double(pat{3});
-        f2=dir2(fname);
-        Np=f2.name;
-        dat=readdump_all([fname,'/',Np,'/lastFrameEnd.txt']);
-        L(i)=l*D*o-D;
-        W(i)=w*D*o-D;
-        R(i)=r;
-        pouredParts = dat.atom_data(dat.atom_data(:,2)==pouredPartsType,:);
-%         NP=size(pouredParts,1); %number of particles
-        NP=str2double(Np);
-        vp=pi*(D/2)^2*(2*L(i)+W(i)+4/3*(D/2));
-        VP(i)=vp;
-        temp= sortrows(pouredParts,5);
-        H(i)=mean(temp(end-300:end,5));
-%         N(i)=round(NP/(2*L(i)+W(i)));
-        N(i)=NP;
-        phi(i)=(N(i)*VP(i))/(pi*(R(i))^2*H(i));
-        LW(i)=L(i)/W(i);    
-    end
-    [~,ord]=sort(L,'ascend');
-    save([fold,'/','stapleDat.mat'],'VP','L','W','H','R','N','D','pouredPartsType','phi','LW','ord');
+pouredParts = dat.atom_data(dat.atom_data(:,2)==pouredPartsType,:);
+atoms=size(pouredParts,1); %number of particles
+if atoms/(apm*N)~=1
+    %             error(['missing some particles in file ',fold,radFolds(i).name])
+    pts(fold,' not enough particles');
 end
 
-figure(2);
-plot(LW(ord),phi(ord));
+vp=pi*(D/2)^2*(2*L+W+4/3*(D/2));
+
+temp= sortrows(pouredParts,5);
+H=mean(temp(end-300:end,5));
+phi=(N*vp)/(pi*r^2*H);
+LW=L/W;
+
+out=[a1,a2,L,W,LW,phi,vp,H,r,N,pouredPartsType];
+
+% [~,ord]=sort(L,'ascend');
+% save([fold,'/','stapleDat.mat'],'VP','L','W','H','R','N','D','pouredPartsType','','phi','LW','ord','a1','a2');
+end

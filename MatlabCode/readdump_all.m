@@ -28,7 +28,7 @@ end
 i=1;
 [stat, n_l_s] = system(['grep -c ".$" ' varargin{1}]);
 n_lines = str2double(n_l_s);
-atom_data = zeros(n_lines-9,8);
+atom_data = zeros(n_lines-8,8);
 while feof(dump) == 0
     id = fgetl(dump);
     switch id(1:11)

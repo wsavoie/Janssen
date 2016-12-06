@@ -1,4 +1,4 @@
-function [ varargout ] = readCrushFile( dataFold,type )
+function [ varargout ] = readCrushFile( dataFold,type,crushOrPour)
 %READCRUSHFILE reads and outputs data from lammps janssen data
 %   reads and outputs data from lammps janssen data where a mass is
 %   generated on top of GM which has already been settled
