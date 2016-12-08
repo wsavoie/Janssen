@@ -9,7 +9,7 @@ function [pos]=createStaple(d,l,w,t,deg,overlap)
 % clear all;
 % d = 1; %diameter in lammps, spheres are defined by diameter
 r=d/2;
-figure(1234);
+
 
 ol=1-overlap;
 
@@ -57,12 +57,18 @@ pos=round(pos,8);
 axis equal
 hold on;
 for i=1:size(pos,1)
+    figure(123);
+    hold on;
     mark='k';    
     if(i>w)
         mark='r';
     end
     [x,y]=makeCircle([pos(i,:)],r);
     plot(x,y,mark)
+  
 %     plot(x,y)
 end
 
+figure(234);
+hold on;
+plot(pos(:,1),pos(:,2),'o');

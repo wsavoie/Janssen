@@ -7,8 +7,8 @@ N=2*l+w;
 
 %%%%
 load('configAngles.mat');
-for i=1:length(Ax)
-    t=[Ax(i),Ay(i)]; deg=1;
+% for i=1:length(Ax)
+    t=[-100,-80]; deg=1;
 %%%%%
 %     t=[90,90]; deg=1; %setting theta is degrees
 
@@ -28,4 +28,4 @@ fold='/home/ws/Janssen/Dimers/';
 [momI,com]=CalcMomentOfInertiaAndCOM(pos,masses);
 
 generateLammpsDimer( pos,types,diams,masses,com,momI,filename,fold);
-end
+% end

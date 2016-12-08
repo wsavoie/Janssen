@@ -22,7 +22,7 @@ for(i=1:length(radFolds))
         load([fold,'/','stapleDat.mat']);
     end
 end
-
+if
 if(~dataLoaded)
     numLW=length(radFolds);
 %     W=L;R=L;N=L;VP=L;phi=L;LW=L;
@@ -32,7 +32,7 @@ if(~dataLoaded)
         %        out=[a1,a2,L,W,LW,phi,vp,H,r,N,pouredPartsType];
         out(i,:)=readShake(D,o,pouredPartsType,fullfile(fold,radFolds(i).name),0);
         out2(i,:)=readShake(D,o,pouredPartsType,fullfile(fold,radFolds(i).name),1);
-        
+        %outforce=[fout,fbottom]
         outForce(i,:)=readForces(fullfile(fold,radFolds(i).name,Np),0);
         outForce2(i,:)=readForces(fullfile(fold,radFolds(i).name,Np),1);
     end
