@@ -4,14 +4,14 @@
 #nParts     = number of particles
 # lmp_serial -var tSteps 45000 -var R 5 -var nParts 800 -var file "mol.jan" < in.janssen
 atom_style	sphere
-atom_modify map hash
+atom_modify map array
 boundary	f f fm
 newton		off
 
 
-comm_modify	vel yes cutoff 2.5
+comm_modify	vel yes mode single cutoff 10
 # neighbor	0.2 bin
-# neigh_modify	delay 0
+neigh_modify	delay 0
 variable        h2 equal 70
 fix             prop all property/atom mol ghost yes
 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -20,9 +20,9 @@ variable d1             equal 1.0   #cylinder material
 variable d2             equal 1.0   #measure material
 variable d3             equal 1   #poured material
 variable fcSp           equal 1
-
+variable diam           equal 0.5
 variable sysCylSize     equal "v_R+4*v_d1"
-variable sysCylH        equal "v_h2+15"
+variable sysCylH        equal "v_h2+25"
 
 
 region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
@@ -33,18 +33,17 @@ molecule mol1 ${file}
 #########poured material##############
 variable bottomFill equal "v_h2-30"
 lattice fcc ${fcSp} origin 0 0 0
-variable rn equal "v_R-4*v_d1"
+variable rn equal "v_R-9*v_d1"
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
 group pouredParts type 3
 
 variable k0     equal 0.1633 #if change sim params must change this!
-variable mup    equal 0.5
-variable muw    equal 0.5
+variable mup    equal 0.25
 variable kn     equal "2*10^6*v_k0"
 
 variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
 variable g_n    equal "50"
-variable g_t    equal "50"
+# variable g_t    equal "50"
 
 # shell mkdir MOLr=${R}/${nPartsSTR}
 variable mainDir string ${file}_r=${R}
@@ -54,7 +53,6 @@ shell mkdir ${mainDir}/${nPartsSTR}
 shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
 pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
 pair_coeff	* *
-
 variable grav equal 1
 fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
 # fix		6 all nve/sphere  #integrator type
@@ -63,46 +61,73 @@ fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zpla
 
 fix     rigidMol pouredParts rigid/small molecule mol mol1 
 neigh_modify exclude molecule all
-fix		ins pouredParts pour ${nParts} 0 300719 vol 0.80 100 region pouredParts mol mol1 rigid rigidMol
+fix		ins pouredParts pour ${nParts} 0 300719 vol 1.5 100 region pouredParts mol mol1 rigid rigidMol
 variable pourTime equal f_ins
 variable pourSteps      equal "v_tSteps+v_pourTime"
 print "system should run for ${pourSteps} steps"
-
-timestep .001
+variable tempMaxz equal bound(pouredParts,zmax) 
+variable dtt equal .001
+timestep ${dtt}
 run_style verlet
 
 
 variable p1 equal f_wallout
 variable p2 equal f_bott
 
-compute 2 all temp/sphere
+compute 2 all temp
 compute_modify	thermo_temp dynamic yes
 
-thermo_style	custom step atoms v_p1 v_p2
-thermo		100
+thermo_style	custom step atoms v_p1 v_p2 v_tempMaxz
+thermo		1000
 thermo_modify	lost ignore norm no
 # thermo_modify  temp 2
 
-
+region bad cylinder z 0 0 ${R} -2 ${sysCylH} units box side out
 
 fix forcePrint all print ${pourSteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/forces.txt screen no
+
 variable        colors string "red green blue yellow white purple pink orange lime gray"
 variable mol3 atom mol%10
-dump		1 all movie 100 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type &
+dump		1 all movie 500 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
-# dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+dump_modify 1 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam}
 dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${pourSteps}
+# undump 1
+variable apm equal $(count(pouredParts))/${nParts}
+print "${apm}"
+variable newNP equal count(pouredParts)/${apm}
+variable np equal ${newNP}
+unfix ins
+run 0
+delete_atoms region bad mol yes compress yes
+unfix rigidMol
+fix     rigidMol pouredParts rigid/small molecule mol mol1 
+if "${newNP}<${np}" then &
+"variable placeNP equal v_np-v_newNP" &
+"fix ins pouredParts pour ${placeNP} 0 300719 vol 1.5 100 region pouredParts mol mol1 rigid rigidMol" &
+"variable extTime equal 25000" &
+"run ${extTime}" &
+"unfix ins"
+
+##########might want to make extension time a bit more arbitrary!!!
 
 
-write_dump all custom ${mainDir}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
+# fix     rigidMol pouredParts rigid/small molecule mol mol1 
+
 undump 1
-run 1
+write_dump all custom ${mainDir}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
+
+# unfix     rigidMol
+
+# fix     rigidMol pouredParts rigid/small molecule mol mol1 
+run 0
+
 ##############################crush code############################
 # print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 variable temp equal bound(pouredParts,zmax)
 variable crushMin equal "v_temp+2"
-variable crushMax equal "v_crushMin+5"
+variable crushMax equal "v_crushMin+10"
 variable Rcrush equal "v_R-.5"
 
 region crushCyl cylinder z 0 0 ${Rcrush} ${crushMin} ${crushMax} units box side in
@@ -113,14 +138,16 @@ create_atoms 2 region crushCyl
 group t2 type 2
 fix 9 t2 rigid single torque * off off off
 fix		10 t2 gravity 1.0 spherical 0.0 -180.0
-
-variable crushsteps equal 30000
+neigh_modify exclude type 2 2
+variable crushsteps equal 40000
 
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameCrush.txt id type x y z fx fy fz
 fix crushPrint all print ${crushsteps} "${p1} ${p2}" file ${mainDir}/${nPartsSTR}/crushforces.txt screen no
-dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
+dump		2 all movie 500 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
-# dump_modify 2 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+dump_modify 2 adiam 1 ${diam} adiam 2 ${d1} adiam 3 ${diam}
 dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
 run		${crushsteps}
+
+
 
