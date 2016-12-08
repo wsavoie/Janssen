@@ -11,9 +11,12 @@ function [ force ] = readForces( dataFold,PourOrCrush)
         else
             error('did not specify correctly pourOrCrush var');
         end
+        
+        %fwallout,fbottom
         fOut=importdata(fullfile(dataFold,fname));
         force=fOut.data;
         force = abs(force);
 %         varargout{1}=force;
+
 end
 
