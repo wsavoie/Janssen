@@ -16,6 +16,7 @@ for a2 in `seq 0 10`; do
 		A2=$(($a2 * 20 - 100))
 		fname=$(printf 'a1=%s_a2=%s_l=28_w=28_d=0.5_o=0.5' "${A1}" "${A2}")
 		cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname} 
+		cp ~/Janssen/${lammpsFile} ~/Janssen/${fname}
 		#nm=number of molecules
 		nm=1000
 		echo ${fname}
