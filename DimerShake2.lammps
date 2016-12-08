@@ -10,8 +10,8 @@ newton		off
 
 
 comm_modify	vel yes mode single cutoff 11
-#neighbor	0.2 bin
-#neigh_modify	delay 0
+# neighbor	0.2 bin
+# neigh_modify	delay 0
 variable        h2 equal 70
 fix             prop all property/atom mol ghost yes
 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -62,7 +62,7 @@ fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zpla
 
 fix     rigidMol pouredParts rigid/small molecule mol mol1
 neigh_modify exclude molecule all
-fix		ins pouredParts pour ${nParts} 0 300719 vol 0.80 100 region pouredParts mol mol1 rigid rigidMol
+fix		ins pouredParts pour ${nParts} 0 3050719 vol 0.80 100 region pouredParts mol mol1 rigid rigidMol
 variable pourTime equal f_ins
 variable pourSteps      equal "v_tSteps+v_pourTime"
 print "system should run for ${pourSteps} steps"
@@ -135,6 +135,6 @@ compute cnk all chunk/atom molecule
 compute myChunk all com/chunk cnk
 compute myChunk1 all property/chunk cnk count
 
-fix comOut all ave/time 1 1 1 c_myChunk1 c_myChunk[*] file ${mainDir}/${nPartsSTR}/finalHeight.txt mode vector
+fix comOut all ave/time 1 0 1 c_myChunk1 c_myChunk[*] file ${mainDir}/${nPartsSTR}/finalHeight.txt mode vector
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameEnd.txt id type x y z fx fy fz 
 run 1
