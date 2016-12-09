@@ -72,18 +72,27 @@ dsigrrSq=griddata(a1,a2,dsigrrS,A1q,A2q);
 dsigzzq=griddata(a1,a2,dsigzz,A1q,A2q);
 dsigzzSq=griddata(a1,a2,dsigzzS,A1q,A2q);
 
+
 figure(23);
 hold on;
 title('\Delta\sigma_{rr}');
-plot3(a1,a2,dsigrr,'o');
-mesh(A1q,A2q,dsigrrq);
+% contour3(A1q,A2q,dsigrrq);
+mesh(A1q,A2q,dsigrrq,'FaceColor','none');
+% surf(A1q,A2q,dsigrrq);
+plot3(a1,a2,dsigrr,'k.','markersize',15);
 xlabel('\alpha_1');ylabel('\alpha_2');zlabel('\Delta\sigma_{rr}');
-% axis([-130 130 -130 130 0,1000]);
+colorbar;
+figText(gcf,16);
+% % axis([-130 130 -130 130 0,1000]);
 
 figure(24);
 hold on;
 title('\Delta\sigma_{zz} ');
-plot3(a1,a2,dsigzz,'o');
+% contour3(A1q,A2q,dsigzzq);
+% surf(A1q,A2q,dsigzzq);
 mesh(A1q,A2q,dsigzzq);
+plot3(a1,a2,dsigzz,'o');
 xlabel('\alpha_1');ylabel('\alpha_2');zlabel('\Delta\sigma_{rr}');
+colorbar;
+figText(gcf,16);
 % axis([-130 130 -130 130 0,5]);
