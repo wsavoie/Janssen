@@ -1,0 +1,236 @@
+#input params are npm and R
+#tSteps     = number of timesteps for filling
+#R          = radius of cylinder
+#nParts     = number of particles
+# lmp_serial -var tSteps 35000 -var R 5 -var nParts 800 < in.janssenCyltest
+atom_style	sphere
+boundary	f f f
+newton		off
+
+comm_modify	vel yes
+neighbor	0.2 bin
+# neigh_modify	delay 0
+variable        w2 equal 10
+variable        h2 equal 20
+
+variable d1             equal 1.0   #cylinder material
+variable d2             equal 1.0   #measure material
+variable d3             equal 1.0   #poured material
+variable fcSp           equal 7
+variable fcSp2          equal 7
+# variable R            equal 3.5
+variable in_cylr        equal "v_R+v_d1/2"
+variable out_cylr       equal "v_R"
+variable sysCylSize     equal "v_R+4*v_d1"
+variable sysCylH        equal "v_h2+5"
+
+region sys cylinder z    0 0 ${sysCylSize} -2 ${sysCylH} units box       #rad=4
+create_box	3 sys
+
+#########bottom plate##############
+lattice fcc ${fcSp} origin 0 0 0
+variable r1 equal "v_d1*2/3"
+variable b equal "(-v_d1/4.0)"
+variable rn equal "v_R-v_d1/4.0"
+# region measure block -${R} ${R} -${R} ${R} -0.25 0 units box
+
+
+# region measure cylinder z    0 0 ${rn} -0.25 0 units box
+# create_atoms	2 region measure
+
+# set type 2 diameter ${d1}
+# group measure region measure
+
+#########cylinder##############
+lattice fcc ${fcSp2} origin 0 0 0
+
+region in_cyl cylinder z    0 0 ${in_cylr} ${r1} ${h2} units box side in        #rad=4
+
+region out_cyl cylinder z   0 0 ${out_cylr} ${r1} ${h2} units box side out
+
+region cyl intersect 2 out_cyl in_cyl
+
+create_atoms	1 region cyl
+set type 1 diameter ${d2}
+group cyl region cyl
+
+# #visualize half of cylinder
+# region visCyl cylinder z -${in_cylr}  0 ${in_cylr}  -15 10 units box
+# group visCyl region visCyl
+
+
+
+variable bottomFill equal "v_h2-5.0"
+#########poured material##############
+lattice fcc ${d3} origin 0 0 0
+variable rn equal "v_R-2*v_d1/2"
+region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
+set type 3 diameter ${d3}
+group pouredParts type 3
+
+######freeze non-moving##############
+
+
+
+variable k0     equal 0.1633 #if change sim params must change this!
+variable mup    equal 0.5
+variable muw    equal 0.5
+variable kn     equal "2*10^6*v_k0"
+
+variable kt     equal "2/7*v_kn" # 2/7kn or 2/(7kn) check this value!
+variable g_n    equal "50"
+variable g_t    equal "50"
+
+#for filling time, pourSteps~partNums,  pourSteps = 11*partNums-110 
+variable pourSteps equal "v_tSteps"
+variable langSteps equal 20000
+
+
+# variable nParts equal "v_nParts" 
+variable nPartsSTR    string ${nParts}
+shell mkdir r=${R}
+shell mkdir r=${R}/${nPartsSTR}
+#####add gravity to poured particles#######
+fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
+
+#set sim params
+##from pdf, maybe should change stiffness to 2e5?
+# http://lammps.sandia.gov/doc/units.html units in lammps
+#lj units
+
+
+timestep .001
+
+run_style verlet
+# fix     1 measure rigid single
+# fix     7 cyl rigid single
+fix		6 all nve/sphere  #integrator type
+# fix		4 all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zcylinder ${R}   #integrator type
+# fix		3 measure nve/sphere  #integrator type\
+
+# pair_style gran/hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1
+pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
+
+# fix		bott all wall/gran hertz/history ${kn} ${kt} ${g_n} ${g_t} ${mup} 1 zplane -.25 25  #integrator type
+# region bottPart plane 0 0 -0.25 0 0 1
+# fix wall all wall/region bottPart lj126  5e-6 0.006 1
+fix bott all wall/lj126 zlo 0.25 5e-2 0.06 .1
+
+#http://lammps.sandia.gov/doc/fix_wall_gran.html
+#history means shear history effects are being used
+
+
+pair_coeff	* *
+
+region px block 0               ${sysCylSize}   -${sysCylSize} ${sysCylSize} 0 ${h2} units box
+region mx block -${sysCylSize}  0               -${sysCylSize} ${sysCylSize} 0 ${h2} units box
+
+region py block -${sysCylSize} ${sysCylSize}    0              ${sysCylSize} 0 ${h2} units box
+region my block -${sysCylSize} ${sysCylSize}    -${sysCylSize} 0             0 ${h2} units box
+
+
+# group px dynamic cyl region px
+# group py dynamic cyl region py
+# group mx dynamic cyl region mx
+# group my dynamic cyl region my
+
+group rpx region px
+group rpy region py
+group rmx region mx
+group rmy region my
+group t1   type 1
+
+group px intersect t1 rpx
+group py intersect t1 rpy
+
+group mx intersect t1 rmx
+group my intersect t1 rmy
+
+print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+compute		1 all erotate/sphere
+# compute     2 pouredParts group/group measure
+# compute     4 measure stress/atom NULL
+# compute     p measure reduce sum c_4[3]
+
+
+# group freezeGroup union measure cyl
+# group freezeGroup cyl
+fix     freezeFix cyl freeze
+
+#######pour in particles
+fix		ins pouredParts pour ${nParts} 3 300719 vol 0.20 100 region pouredParts
+# velocity pouredParts create .25 4928459 rot yes dist gaussian
+
+# group pp union pouredParts measure
+# group pp dynamic oo every 100
+
+compute prez all pressure thermo_temp
+compute_modify prez dynamic yes
+
+thermo_style	custom step atoms ke c_1 vol
+thermo		100
+thermo_modify	lost ignore norm no
+compute_modify	thermo_temp dynamic yes
+# compute     3 pouredParts group/group cyl
+# compute     4 pouredParts pe/tally cyl
+# compute     5 cyl reduce sum c_4[*]
+
+compute px pouredParts group/group px
+compute mx pouredParts group/group mx
+compute py pouredParts group/group py
+compute my pouredParts group/group my
+compute ffz all reduce sum fz
+
+fix bott px wall/lj126 zlo 0.25 5e-2 0.06 .1
+
+
+# group vg union mx measure
+# group vg2 union pouredParts vg 
+dump		1 pouredParts movie 100 r=${R}/${nPartsSTR}/FillContainer.mpg type type &
+            axes yes 0.8 0.02 view 80 -30  #80 -30
+dump_modify 1 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+
+
+variable ss equal step
+ # xx, yy, zz, xy, xz, yz.
+variable fx equal "sqrt(c_px[1]*c_px[1])+sqrt(c_mx[1]*c_mx[1])"
+variable fy equal "sqrt(c_py[2]*c_py[2])+sqrt(c_my[2]*c_my[2])"
+# variable fz equal c_2[3]
+variable p6 equal f_bott[1]
+variable p7 equal f_bott
+# variable p7 equal f_bott[2]
+# variable s2 equal c_5[1]
+# variable sx atom "c_4[1]*c_4[1]+c_4[2]*c_4[2]"
+
+# variable sy equal "c_4[1]*c_4[1]+c_4[2]*c_4[2]"
+# variable sz equal "c_4[1]*c_4[1]+c_4[2]*c_4[2]"
+
+
+# variable fe equal c_FRCE[0]
+
+
+variable ffz equal c_ffz
+fix forcePrint all print ${pourSteps} "${ss} ${fx} ${fy} ${ffz} ${p6} ${p7}" file r=${R}/${nPartsSTR}/forces.txt screen no
+# fix WallForcePrint all print 100 "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/cylForces.txt screen no  
+
+run		${pourSteps}
+
+write_dump all custom r=${R}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
+
+# 
+#turn on langevins equations
+undump 1
+
+# fix lang pouredParts langevin 5 10 100.0 48279
+# # group visGroup union pouredParts measure
+# group visGroup union pouredParts temp2
+# dump		2 all atom 100  r=${R}/${nPartsSTR}/Langevin.lammpstrj
+# dump		3 visGroup movie 1000  r=${R}/${nPartsSTR}/Langevin.mpg type type &
+            # axes yes 0.8 0.02 view 80 -30
+# dump_modify 3 adiam 1 ${d1} adiam 2 ${d2} adiam 3 ${d3}
+# dump		4 all xyz   100  r=${R}/${nPartsSTR}/Langevin.xyz
+# fix LangForcePrint measure print 100 "${ss} ${fx} ${fy} ${fz}" file r=${R}/${nPartsSTR}/forcesLang.txt screen no 
+# run		${langSteps}
+# write_dump all atom r=${R}/${nPartsSTR}/lastFrameLangevin.txt
+
+# ##write_data derp
