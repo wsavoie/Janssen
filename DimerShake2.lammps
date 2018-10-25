@@ -135,6 +135,6 @@ compute cnk all chunk/atom molecule
 compute myChunk all com/chunk cnk
 compute myChunk1 all property/chunk cnk count
 
-fix comOut all ave/time 1 0 1 c_myChunk1 c_myChunk[*] file ${mainDir}/${nPartsSTR}/finalHeight.txt mode vector
+fix comOut all ave/time 1 2 2 c_myChunk1 c_myChunk[*] file ${mainDir}/${nPartsSTR}/finalHeight.txt mode vector
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFrameEnd.txt id type x y z fx fy fz 
-run 1
+run 2
