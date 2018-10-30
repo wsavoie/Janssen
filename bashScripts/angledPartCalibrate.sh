@@ -5,19 +5,27 @@ settlingTime=30000
 
 
 
-lammpsFile=DimerShake2.lammps
+lammpsFile=janssenDimerShake.lammps
 #read second line from file and grep number from that line
 #read # atoms line and return #
 o=0.5
-fillP=(2500 2000 1400 1200 1000 1000 1000);
-lw=(0 6 12 18 24 30 36);
-#append this to folder name 
-app="v7";
+app="v3"; 
+lw=(28);
+
+# for a1 in `seq 10 10`; do
+# for a2 in `seq 10 10`; do
+# 		A1=$(($a1 * 20 - 100))
+# 		A2=$(($a2 * 20 - 100))
+a1=(100 100 100 100 100 100 100 100 100 100 100)
+a2=(-80 -60 -40 -20 0 20 40)
 for lws in `seq 0 6`; do
-		fname=$(printf 'w=28_l=%s_o=%s' "${lw[$lws]}" "${o}")
-		cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname} 
+		A1=${a1[$lws]}
+		A2=${a2[$lws]}
+		fname=$(printf 'a1=%s_a2=%s_l=28_w=28_d=0.5_o=0.5' "${A1}" "${A2}")
+		cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname}
+		#cp ~/Janssen/${lammpsFile} ~/Janssen/${fname} 
 		#nm=number of molecules
-		nm=${fillP[$lws]}
+		nm=800
 		echo ${fname}
 		ss=${settlingTime};
 		randz=$RANDOM;
