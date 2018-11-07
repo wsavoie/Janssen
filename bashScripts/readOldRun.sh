@@ -1,15 +1,15 @@
 #!/bin/bash
 cd ~/Janssen
-rad=15.0
-settlingTime=30000
+rad=20.0
+settlingTime=25000
 
 
 
-lammpsFile=janssenDimerShake.lammps
+lammpsFile=readTest.lammps
 #read second line from file and grep number from that line
 #read # atoms line and return #
 o=0.5
-app="v4"; 
+app="v55"; 
 lw=(28);
 
 # for a1 in `seq 10 10`; do
@@ -17,15 +17,15 @@ lw=(28);
 # 		A1=$(($a1 * 20 - 100))
 # 		A2=$(($a2 * 20 - 100))
 a1=(100 100 100 100 100 100 100 100 100 100 100)
-a2=(-80 -60 -40 -20 0 20 40)
-for lws in `seq 0 6`; do
+a2=(-100 -80 -60 -40 -20 0 20 40 60 80 100)
+for lws in `seq 0 0`; do
 		A1=${a1[$lws]}
 		A2=${a2[$lws]}
 		fname=$(printf 'a1=%s_a2=%s_l=28_w=28_d=0.5_o=0.5' "${A1}" "${A2}")
 		cp ~/Janssen/Dimers/${fname} ~/Janssen/${fname}
 		#cp ~/Janssen/${lammpsFile} ~/Janssen/${fname} 
 		#nm=number of molecules
-		nm=800
+		nm=5
 		echo ${fname}
 		ss=${settlingTime};
 		randz=$RANDOM;

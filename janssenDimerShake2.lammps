@@ -7,12 +7,12 @@ atom_style	sphere
 atom_modify map hash
 boundary	f f fm
 newton		off
-
+units cgs
 
 comm_modify	vel yes mode single cutoff 11
 # neighbor	0.2 bin
 #neigh_modify	delay 0
-variable        h2 equal 70
+variable        h2 equal 100
 fix             prop all property/atom mol ghost yes
 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
@@ -32,22 +32,38 @@ print "${file}"
 molecule mol1 ${file}
 
 #########poured material##############
-variable bottomFill equal "v_h2-20"
+
+variable bottomFill equal "v_h2-65"
 lattice fcc ${fcSp} origin 0 0 0
 variable rn equal "v_R-10*v_d1"
 region pouredParts cylinder z 0 0 ${rn} ${bottomFill} ${h2} units box side in
 group pouredParts type 3
 
+variable dtt equal 1.0E-5
 variable randVar equal "v_randz"
 variable k0     equal .1633 #if change sim params must change this!
 variable mup    equal 0.25
 variable muw    equal 0.5
-variable kn     equal "2*10^6*v_k0"
+variable kn     equal "2E8"
 
 variable kt     equal "2/7*v_kn"
-variable g_n    equal "50"
+variable g_n    equal "1500"
 #variable g_n    equal "2700"
 #variable g_t    equal "50"
+variable gravz   equal "980.6"
+#variable tau equal "0.024731"
+variable onesec equal "1"
+variable freq equal "30/v_onesec"
+variable omega equal "2*PI*v_freq"
+variable maxAmp equal "2*v_gravz/(v_omega*v_omega)"
+
+variable period equal "1/(v_freq)"
+variable totOsc equal "600"
+variable crushsteps equal "round(v_totOsc*v_period*1/v_dtt)"
+variable settleTime equal "v_tSteps"
+
+timestep ${dtt}
+
 
 # shell mkdir MOLr=${R}/${nPartsSTR}
 variable mainDir string ${file}_r=${R}_${app}
@@ -57,21 +73,20 @@ shell mkdir ${mainDir}/${nPartsSTR}
 shell cp ${file} ${mainDir}/${nPartsSTR}/${file}
 pair_style gran/hertz/history ${kn} NULL ${g_n} NULL ${mup} 1
 pair_coeff	* *
-variable grav equal 1
-fix		2 pouredParts gravity 1.0 spherical 0.0 -180.0
+
+fix		2 pouredParts gravity ${gravz} spherical 0.0 -180.0
 # fix		6 all nve/sphere  #integrator type
 fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R}   #integrator type
 fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL  #integrator type
 
 fix     rigidMol pouredParts rigid/small molecule mol mol1 
 neigh_modify exclude molecule all
-fix		ins pouredParts pour ${nParts} 0 ${randVar} vol 0.80 100 region pouredParts mol mol1 rigid rigidMol
+fix		ins pouredParts pour ${nParts} 0 ${randVar} vol 19 100 region pouredParts mol mol1 rigid rigidMol
 variable pourTime equal f_ins
 variable pourSteps      equal "v_tSteps+v_pourTime"
 print "system should run for ${pourSteps} steps"
 variable tempMaxz equal bound(pouredParts,zmax) 
-variable dtt equal .001
-timestep ${dtt}
+
 run_style verlet
 
 
@@ -80,17 +95,26 @@ compute 2 all temp
 compute_modify	thermo_temp dynamic yes
 
 thermo_style	custom step atoms v_tempMaxz
-thermo		1000
+
+variable SS equal round(1/${dtt})
+variable fpout equal "round(v_SS/90)"
+
+thermo		${fpout}
+print "!!!!!!!!!!!!!!!!!!!!!!!!!!!asds"
+
 thermo_modify	lost ignore norm no
 # thermo_modify  temp 2
+
 
 #use type type for color by type or type v_mol3 for diff colors
 variable        colors string "red green blue yellow white purple pink orange lime gray"
 variable mol3 atom mol%10
-dump		1 all movie 200 ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type &
+dump		1 all movie ${fpout} ${mainDir}/${nPartsSTR}/FillContainer.mpg v_mol3 type &
             axes yes 0.8 0.02 view 80 -30  #80 -30
+            
 dump_modify 1 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam}
 dump_modify 1 pad 18 amap 0 10 sa 1 10 ${colors}
+
 run		${pourSteps}
 
 write_dump all custom ${mainDir}/${nPartsSTR}/lastFramePour.txt id type x y z fx fy fz
@@ -101,25 +125,21 @@ run 1
 # print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 unfix wallout
 unfix bott
-print "!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-# using sim units derived from plastic spheres
-variable tau equal "0.024731"
-variable onesec equal "1/v_tau"
-variable freq equal "30/v_onesec"
-variable omega equal "2*PI*v_freq"
-variable maxAmp equal "2*v_grav/(v_omega*v_omega)"
-variable period equal "1/(v_freq)"
-variable totOsc equal "600"
 
-variable crushsteps equal "round(v_totOsc*v_period*1/v_dtt)"
-print "\n\nCRUSHSTEPS: ${crushsteps}\n\n"
+# using sim units derived from plastic spheres
+
+
+
+print "\n\nCRUSHSTEPS: ${crushsteps}\n\n ${mup}"
 fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R} wiggle z ${maxAmp} ${period}   #integrator type
 fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL wiggle z ${maxAmp} ${period} #integrator type
 
-dump		2 all movie 100 ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
+dump		2 all movie ${fpout} ${mainDir}/${nPartsSTR}/crushMovie.mpg v_mol3 type &
 	            axes yes 0.8 0.02 view 80 -30  #80 -30
+
 dump_modify 2 adiam 1 ${diam} adiam 2 ${diam} adiam 3 ${diam} 
 dump_modify 2 pad 18 amap 0 10 sa 1 10 ${colors}
+
 run		${crushsteps}
 
 undump 2
@@ -130,7 +150,7 @@ unfix bott
 fix		wallout all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zcylinder ${R}  #integrator type
 fix    	bott    all wall/gran hertz/history ${kn} NULL ${g_n} NULL ${mup} 1 zplane 0 NULL  #integrator type
 
-run		30000
+run		${settleTime}
 
 compute cnk all chunk/atom molecule
 compute myChunk all com/chunk cnk

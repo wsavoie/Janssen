@@ -3,14 +3,13 @@ cd ~/Janssen
 rad=20.0
 settlingTime=25000
 
-#./StapleCalibrate.sh v3 0 5     
-# v1 0 5,v1 6 10
+
 
 lammpsFile=janssenDimerShakev1.lammps
 #read second line from file and grep number from that line
 #read # atoms line and return #
 o=0.5
-app="$1"; 
+app="v3"; 
 lw=(28);
 
 # for a1 in `seq 10 10`; do
@@ -19,7 +18,7 @@ lw=(28);
 # 		A2=$(($a2 * 20 - 100))
 a1=(100 100 100 100 100 100 100 100 100 100 100)
 a2=(-100 -80 -60 -40 -20 0 20 40 60 80 100)
-for lws in `seq $2 $3`; do
+for lws in `seq 0 5`; do
 		A1=${a1[$lws]}
 		A2=${a2[$lws]}
 		fname=$(printf 'a1=%s_a2=%s_l=28_w=28_d=0.5_o=0.5' "${A1}" "${A2}")
